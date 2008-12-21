@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.01_02';
+our $VERSION = '0.01_03';
 
 sub import{
     my $caller_class = caller;
@@ -67,7 +67,7 @@ sub ac(@){
     _SIMO_ac_opt( $ac_define_class, $key, $ac_opt );
 
     # redefine real acessor
-    my $ac_redefine = qq/sub ${ac_define_class}::${key}/ . qq/{ _SIMO_ac_real( '$key' , \@_ ) }/;
+    my $ac_redefine = qq/sub ${ac_define_class}::${key} { _SIMO_ac_real( '$key' , \@_ ) }/;
     
     {
         no warnings 'redefine';

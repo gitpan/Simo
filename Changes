@@ -1,3 +1,10 @@
+Version 0.01_03
+    refactoring
+    
+    qq/sub ${ac_define_class}::${key}/ . qw/{ _SIMO_ac_real( '$key' , \@_ ) }/;
+    to
+    qq/sub ${ac_define_class}::${key} { _SIMO_ac_real( '$key' , \@_ ) }/;
+
 Version 0.01_02
     fix this failed test.
     FAIL Simo-0.01 i386-netbsd-thread-multi-64int 4.0
