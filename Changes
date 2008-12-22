@@ -1,3 +1,10 @@
+Version 0.01_04
+    fix to be right inherit order 
+    
+    unshift @{ "${caller_class}::ISA" }, __PACKAGE__;
+    to
+    push @{ "${caller_class}::ISA" }, __PACKAGE__;
+
 Version 0.01_03
     refactoring
     

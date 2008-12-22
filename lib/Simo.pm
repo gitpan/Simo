@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.01_03';
+our $VERSION = '0.01_04';
 
 sub import{
     my $caller_class = caller;
@@ -14,7 +14,7 @@ sub import{
         *{ "${caller_class}::ac" } = \&Simo::ac;
         
         # caller inherit Simo
-        unshift @{ "${caller_class}::ISA" }, __PACKAGE__;
+        push @{ "${caller_class}::ISA" }, __PACKAGE__;
     }
 
     # auto strict and warnings
@@ -26,7 +26,6 @@ sub new{
     my ( $class, @args ) = @_;
     
     # check args
-    confess 'please call new method from class' if ref $class;
     confess 'please pass key value pairs to new method' if @args % 2;
     
     # bless
@@ -488,6 +487,44 @@ Whenever You change argments or add initializetion,
 You override new method.
 
 =cut
+
+=head2 Extend base class
+
+you may want to extend base class. It is OK.
+
+But I should say to you that there are one thing you should know.
+The order of Inheritance is very important.
+
+I write good sample and bad sample.
+
+    # base class
+    package Book;
+    sub title{ ac };
+    
+    # Good sample.
+    # inherit base class. It is OK!
+    package Magazine;
+    use base 'Book'; # use base is first
+    use Simo;        # use Simo is second;
+    
+    # Bad sample
+    package Magazine;
+    use Simo;          # use Simo is first
+    use base 'Book';   # use base is second
+
+If you call new method in Good sample, you call Book::new method.
+This is what you wanto to do.
+
+If you call new method in Bad sample, you call Simo::new method. 
+you will think why Book::new method is not called?
+
+Maybe, You will be wrong sometime. So I recomend you the following writing.
+
+    package Magazine; use base 'Book'; # package and base class
+    use Simo;                          
+
+It is like other language class Definition and I think looking is not bat.
+and you are not likely to choose wrong order.
 
 =head1 AUTHOR
 
