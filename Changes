@@ -1,3 +1,12 @@
+Version 0.01_05
+    Remove hook accessor option.
+    Add set_hook accessor option and get_hook accessor option.
+    
+    Fix sub _SIMO_ac_opt
+    $Simo::info{ class }{ $class }{ ac }{ opt } = $opt;
+    to
+    $Simo::info{ class }{ $class }{ ac }{ $key }{ opt } = $opt;
+    
 Version 0.01_04
     fix to be right inherit order 
     

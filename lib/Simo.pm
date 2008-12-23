@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.01_04';
+our $VERSION = '0.01_05';
 
 sub import{
     my $caller_class = caller;
@@ -36,7 +36,7 @@ sub new{
     while( my ( $key, $val ) = splice( @args, 0, 2 ) ){
         no strict 'refs';
         eval{ $self->$key( $val ) };
-        croak "$key is invalid key" if $@;
+        croak $@ if $@;
     }
     return $self;
 }
@@ -53,7 +53,7 @@ sub ac(@){
     
     # check and rearrange accessor option;
     my $ac_opt = {};
-    my %valid_opt = map{ $_ => 1 } qw( default hook hash_force );
+    my %valid_opt = map{ $_ => 1 } qw( default set_hook get_hook hash_force );
         
     $ac_opt->{ default } = shift if @_ % 2;
     
@@ -102,15 +102,24 @@ sub _SIMO_ac_real{
     
     # set value if value is defined
     if( defined( $val ) ){
-        # hook function
-        eval{ $val = $ac_opt->{ hook }->($self,$val) if $ac_opt->{ hook } };
-        confess 'Please set valid code ref as hook' if $@;
+        # setter hook function
+        if( $ac_opt->{ set_hook } ){
+            eval{ $val = $ac_opt->{ set_hook }->($self,$val) };
+            confess $@ if $@;
+        }
         
         # set new value
         $self->{ $key } = $val;
         
         # updated is true
         _SIMO_obj_updated( $self, $key, 1 );
+    }
+    else{
+        # getter hook function
+        if( $ac_opt->{ get_hook } ){
+            eval{ $ret = $ac_opt->{ get_hook }->($self, $ret) };
+            confess $@ if $@;
+        }
     }
     
     return !wantarray ? $ret :
@@ -139,9 +148,9 @@ sub _SIMO_ac_define_class{
 sub _SIMO_ac_opt{
     my( $class, $key, $opt ) = @_;
     if( defined( $opt ) ){
-        $Simo::info{ class }{ $class }{ ac }{ opt } = $opt;
+        $Simo::info{ class }{ $class }{ ac }{ $key }{ opt } = $opt;
     }
-    return $Simo::info{ class }{ $class }{ ac }{ opt };
+    return $Simo::info{ class }{ $class }{ ac }{ $key }{ opt };
 }
 
 # Check whether default is updated.
@@ -202,6 +211,34 @@ writing new and accessors repeatedly
 
 =cut
 
+=head1 SYNOPSIS
+
+    package Book;
+    use Simo;
+    
+    # simple accessors
+    sub title{ ac }
+    
+    # having default value
+    sub author{ ac 'Kimoto' }
+    
+    # all accessor option 
+    sub description{ ac
+        default => 'This is good book',
+        set_hook => sub{
+            my ( $self, $val ) = @_;
+            # do what you want to do
+            return $val;
+        },
+        get_hook => sub{
+            my ( $self, $val ) = @_;
+            # do what you want to do
+            return $val;
+        },
+        hash_force => 1
+    }
+    1;
+
 =head1 DESCRIPTION
 
 =head2 Creating class and accessors
@@ -259,7 +296,7 @@ You can get old value when you use accessor as setter.
     $book->author( 'Ken' );
     my $old_value = $book->author( 'Taro' ); # $old_value is 'Ken'
 
-=head2 Default value
+=head2 accessor having Default value
 
 You can set default value for accessor.
 
@@ -272,21 +309,21 @@ You get 'Papa' if 'title' field is not initialized.
 
 =cut
 
-=head2 Hook function for validation or filter.
+=head2 Setter Hook function for validation or filter or etc.
 
-You can set hook function for accessor.
+You can set set_hook function for accessor.
 
     package Book;
     use Simo;
     
-    # set hook function for accessor
-    sub date{ ac hook => \&date_filter }
+    # set_hook function for accessor
+    sub date{ ac set_hook => \&date_filter }
     
-    # hook function
+    # set_hook function definition
     sub date_filter{
         my ( $self, $val ) = @_;
         $val =~ s/-//g; # ( '2008-10-10' -> '20081010' )
-        return $val
+        return $val;
     }
     1;
 
@@ -297,13 +334,62 @@ If you set date this way
 
 =cut
 
-=head2 Hook function arguments
+=head2 set_hook function arguments and return value
 
-Hook foucntion receive two args( $self and $val ).
+set_hook function receive two args( $self and $val ).
 
 In this example, $self is $book object.
 
-$val is passed value( '2008-08-11' )
+$val is passed value '2008-08-11'
+
+if you pass array to setter, $val has been converted to array ref.
+
+and you must return scalar, not list. 
+
+=cut
+
+=head2 Getter Hook function for initialization or etc.
+
+You can set get_hook function for accessor.
+
+    package Book;
+    use Simo;
+    
+    # get_hook function for accessor
+    sub date{ ac
+        get_hook => sub{
+            my ( $self, $val ) = @_;
+            if( !$val ){ # val is $self->{ 'conf' }
+                
+                $val = localtime;
+                
+                $self->date( $val ); # if you set 
+            }
+            return $val;
+        }
+    }
+
+    1;
+
+you get date
+
+    $book->date;
+
+if $book->{ 'date' } is undef, $book->date return current localtime.
+
+get_hook option is useful, if you want to set default value in dynamically, not Statically.
+
+=cut
+
+=head2 get_hook function arguments and return value
+
+get_hook function receive two args( $self and $val ).
+
+In this example, $self is $book object.
+
+$val is current value undef.
+
+and you must return scalar, not list. 
 
 =cut
 
@@ -331,11 +417,11 @@ or explicitely
 
 =cut
 
-=head3 hook option
+=head3 set_hook option
 
-You can set hook function for accessor
+You can define hook function for setter
 
-    sub date{ ac hook => \&filter }
+    sub date{ ac set_hook => \&filter }
     
     sub filter{
         my ( $self, $val ) = @_;
@@ -346,13 +432,31 @@ You can set hook function for accessor
 or using anonymous function
 
     sub data{ ac 
-        hook => sub{
+        set_hook => sub{
             my( $self, $val ) = @_;
             # ...
             return $some_val;
         }
     }
 
+=cut
+
+=head3 get_hook option
+
+You can define hook function for getter
+
+    sub date{ ac
+        get_hook => sub{
+            my ( $self, $val ) = @_;
+            if( !$val ){ # val is $self->{ 'conf' }
+                
+                $val = localtime;
+                
+                $self->date( $val ); # if you set 
+            }
+            return $val;
+        }
+    }
 =cut
 
 =head3 hash_force option
