@@ -1,7 +1,7 @@
 --- #YAML:1.0
 name:                Simo
-version:             0.01
-abstract:            Very simple interface for Object Oriented Perl,
+version:             0.02
+abstract:            Very simple framework for Object Oriented Perl.
 license:             perl
 author:              
     - Yuki Kimoto <kimoto.yuki@gmail.com>

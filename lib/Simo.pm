@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.01_05';
+our $VERSION = '0.02';
 
 sub import{
     my $caller_class = caller;
@@ -26,6 +26,7 @@ sub new{
     my ( $class, @args ) = @_;
     
     # check args
+    @args = %{ $args[0] } if ref $args[0] eq 'HASH';
     confess 'please pass key value pairs to new method' if @args % 2;
     
     # bless

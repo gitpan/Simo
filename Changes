@@ -1,3 +1,6 @@
+Version 0.02
+    new method can receive hash ref.
+
 Version 0.01_05
     Remove hook accessor option.
     Add set_hook accessor option and get_hook accessor option.
