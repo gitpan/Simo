@@ -1,3 +1,6 @@
+Version 0.0201
+    I don't pack test file in package
+
 Version 0.02
     new method can receive hash ref.
 
