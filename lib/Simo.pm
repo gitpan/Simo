@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0201';
+our $VERSION = '0.0202';
 
 sub import{
     my $caller_class = caller;

@@ -1,7 +1,6 @@
-.cvsignore
 Changes
 lib/Simo.pm
-Makefile.PL
+Build.PL
 MANIFEST
 README
 t/00-load.t
@@ -17,4 +16,5 @@ t/09-autostrict.t
 t/boilerplate.t
 t/pod-coverage.t
 t/pod.t
-META.yml                                 Module meta-data (added by MakeMaker)
+Makefile.PL
+META.yml
