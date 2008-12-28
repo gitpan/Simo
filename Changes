@@ -1,3 +1,6 @@
+Version 0.0203
+    I change Makefile.PL so that you can install without make.
+    
 Version 0.0202
     I change module builder to Module::Build so that you can install without make.
 
