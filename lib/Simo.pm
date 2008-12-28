@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0203';
+our $VERSION = '0.0204';
 
 sub import{
     my $caller_class = caller;
@@ -187,7 +187,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.01
+Version 0.0204
 
 =cut
 
