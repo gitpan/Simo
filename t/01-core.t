@@ -90,13 +90,13 @@ package main;
     is_deeply( $ary_ref, [ 1, 2 ], 'set array and get array ref' );
     
     my @ary = $book->title;
-    is_deeply( [ @ary ], [ 1, 2 ], 'set array and get arrya' );
+    is_deeply( $ary[0], [ 1, 2 ], 'set array and get arrya' );
     
     $book->title( { k => 1} );
     my $hash_ref = $book->title;
     is_deeply( $hash_ref, { k => 1}, 'set hash ref and get hash ref' );
     
-    my %hash = $book->title;
+    my %hash =%{ $book->title };
     is_deeply( { %hash }, { k => 1 }, 'set hash ref and get hash' );
 }
 
@@ -117,7 +117,7 @@ package main;
     is( $val_default, 1, 'ac default option and set_hook' );
     
     $book->price( 2 );
-    my ( $val_set_hook, $self_set_hook ) = $book->price;
+    my ( $val_set_hook, $self_set_hook ) = @{ $book->price };
     is( $val_set_hook, 3, 'ac set_hook option( val )' );
     is( ref $self_set_hook, 'Book', 'ac set_hook option( arg )' );
     
@@ -130,7 +130,7 @@ package main;
     
     
     $book->size( 2 );
-    my ( $val_get_hook, $self_get_hook ) = $book->size;
+    my ( $val_get_hook, $self_get_hook ) = @{ $book->size };
     is( $val_get_hook, 2, 'ac get_hook option( val )' );
     is( ref $self_get_hook, 'Book', 'ac get_hook option( arg )' );
     
@@ -169,7 +169,7 @@ package main;
     is_deeply( $ary_get, [ 1, 2 ], 'equal reference value' );
     
     # shallow copy
-    my @ary_shallow = $book->title;
+    my @ary_shallow = @{ $book->title };
     push @ary_shallow, 3;
     is_deeply( [@ary_shallow],[1, 2, 3 ], 'shallow copy' );
     is_deeply( $ary_get, [1,2 ], 'shallow copy not effective' );

@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0204';
+our $VERSION = '0.0205';
 
 sub import{
     my $caller_class = caller;
@@ -123,10 +123,7 @@ sub _SIMO_ac_real{
         }
     }
     
-    return !wantarray ? $ret :
-           ref $ret eq 'ARRAY' ? @{ $ret } :
-           ref $ret eq 'HASH' ? %{ $ret } :
-           ( $ret );
+    return $ret;
 }
 
 # Get accessor define class
@@ -187,7 +184,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0204
+Version 0.0205
 
 =cut
 
@@ -503,22 +500,6 @@ If you use hash_force option, you convert list to hash ref
             # ..
         }
     }
-
-=cut
-
-=head2 scalar context and list context
-
-You can call accessor in scalar context and list context.
-
-Accessor is designed to suit context.
-
-You call accessor in scalar context, you get scalar value( scalar, array ref, hash ref, object, etc )
-
-    my $ary = $book->authors; # you get array ref
-
-You calls accessor in list context, you get list.
-
-    my @ary = $book->authors; # you get list
 
 =cut
 
