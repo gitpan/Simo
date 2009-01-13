@@ -1,3 +1,8 @@
+Version 0.03_02
+    referctering
+        DESTROY method is deleted.
+       _SIMO_ac_opt method is deleted.
+
 Version 0.03_01
     developer version
     add new method

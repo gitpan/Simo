@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.03_01';
+our $VERSION = '0.03_02';
 
 our $ac_opt;
 our $ac_define_class;
@@ -49,7 +49,7 @@ sub new{
 sub ac(@){
 
     # accessor info
-    my ( $self, $key, $ac_define_class, @vals ) = _SIMO_ac_info();
+    my ( $self, $key, $ac_define_class, @vals ) = _SIMO_get_ac_info();
     
     # check accessor info
     my $class = ref $self;
@@ -90,7 +90,8 @@ sub _SIMO_ac_real{
     confess "Cannot call accessor from Class." unless $class;
     
     # get accessor defined class
-    my $ac_define_class = _SIMO_ac_define_class( $class, $key );
+    $Simo::ac_define_class{ $class }{ $key } ||= _SIMO_get_ac_define_class( $class, $key );
+    my $ac_define_class = $Simo::ac_define_class{ $class }{ $key };
     
     # get accessor option
     my $ac_opt = $Simo::ac_opt{ $ac_define_class }{ $key };
@@ -117,8 +118,7 @@ sub _SIMO_ac_real{
         }
         
         # constrain
-        my $constrains = $ac_opt->{ constrain };
-        if( $constrains ){
+        if( my $constrains = $ac_opt->{ constrain } ){
             $constrains = [ $constrains ] unless ref $constrains eq 'ARRAY';
             foreach my $constrain ( @{ $constrains } ){
                 local $_ = $val;
@@ -128,8 +128,7 @@ sub _SIMO_ac_real{
         }
         
         # filter
-        my $filters = $ac_opt->{ filter };
-        if( $filters ){
+        if( my $filters = $ac_opt->{ filter } ){
             $filters = [ $filters ] unless ref $filters eq 'ARRAY';
             foreach my $filter ( @{ $filters } ){
                 local $_ = $val;
@@ -142,8 +141,7 @@ sub _SIMO_ac_real{
         $self->{ $key } = $val;
         
         # trigger
-        my $triggers = $ac_opt->{ trigger };
-        if( $triggers ){
+        if( my $triggers = $ac_opt->{ trigger } ){
             $triggers = [ $triggers ] unless ref $triggers eq 'ARRAY';
             foreach my $trigger ( @{ $triggers } ){
                 local $_ = $self;
@@ -164,32 +162,19 @@ sub _SIMO_ac_real{
 }
 
 # Get accessor define class
-sub _SIMO_ac_define_class{
+sub _SIMO_get_ac_define_class{
     my ( $class, $key ) = @_;
-    unless( $Simo::ac_define_class{ $class }{ $key } ){
-        
-        my $ac_define_class = ( caller 2 )[ 3 ];
-        
-        if( $ac_define_class =~ /^(.+)::/ ){
-            $ac_define_class = $1;
-        }
-        
-        $Simo::ac_define_class{ $class }{ $key } = $ac_define_class;
+    
+    my $ac_define_class = ( caller 2 )[ 3 ];
+    
+    if( $ac_define_class =~ /^(.+)::/ ){
+        $ac_define_class = $1;
     }
-    return $Simo::ac_define_class{ $class }{ $key };
-}
-
-# Get and set accessor opt
-sub _SIMO_ac_opt{
-    my( $class, $key, $opt ) = @_;
-    if( defined( $opt ) ){
-        $Simo::info{ class }{ $class }{ ac }{ $key }{ opt } = $opt;
-    }
-    return $Simo::info{ class }{ $class }{ ac }{ $key }{ opt };
+    return $ac_define_class;
 }
 
 # Helper to get acsessor info;
-sub _SIMO_ac_info {
+sub _SIMO_get_ac_info {
     package DB;
     my @caller = caller 2;
     
@@ -198,12 +183,6 @@ sub _SIMO_ac_info {
     my ( $ac_define_class, $key ) = $sub =~ /^(.*)::(.+)$/;
 
     return ( $self, $key, $ac_define_class, @vals );
-}
-
-# Simo object destroctor
-sub DESTROY{
-    my $self = shift;
-    delete $Simo::info{ obj }{ $self };
 }
 
 =head1 NAME
