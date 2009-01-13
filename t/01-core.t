@@ -1,4 +1,4 @@
-use Test::More  tests => 31;
+use Test::More  'no_plan';
 
 BEGIN{ use_ok( 'Simo' ) }
 can_ok( 'Simo', qw( ac new ) ); 
@@ -122,7 +122,6 @@ package main;
     is( ref $self_set_hook, 'Book', 'ac set_hook option( arg )' );
     
     eval{
-        $DB::single = 1;
         $book->color( 1 );
     };
     
@@ -135,7 +134,6 @@ package main;
     is( ref $self_get_hook, 'Book', 'ac get_hook option( arg )' );
     
     eval{
-        $DB::single = 1;
         $book->color;
     };
     
@@ -175,7 +173,7 @@ package main;
     is_deeply( $ary_get, [1,2 ], 'shallow copy not effective' );
     
     push @{ $book->title }, 3;
-    is_deeply( $ary_get, [ 1, 2, 3 ] );
+    is_deeply( $ary_get, [ 1, 2, 3 ], 'push array' );
     
 }
 
@@ -198,9 +196,159 @@ package main;
     is( $p->y, 1, 'defalut normal' );
 }
 
+# cnstrain
+package MyTest1;
+use Simo;
+
+sub x{ ac constrain => sub{ $_ == 1 or die 'constrain $_' } }
+sub y{ ac constrain => sub{ $_[0] == 1 or die 'constrain $_[0]' } }
+sub z{ ac
+    constrain => [
+        sub{ $_ < 3  or die "" },
+        sub{ $_ > 1  or die "" }
+    ]
+}
+
+sub p{ ac constrain => 'a' }
+
+package main;
+{
+    my $t = MyTest1->new;
+    
+    eval{ $t->x( 1 ) };
+    if( $@ ){
+        fail 'constrain $_ OK';
+    }
+    else{
+        pass 'constrain $_ OK';
+    }
+    
+    eval{ $t->x( 0 ) };
+    if( $@ ){
+        pass 'constrain $_ NG';
+    }
+    else{
+        fail 'constrain $_ NG';
+    }
+    
+    eval{ $t->y( 1 ) };
+    if( $@ ){
+        fail 'constrain $_[0] OK';
+    }
+    else{
+        pass 'constrain $_[0]';
+    }
+    
+    eval{ $t->y( 0 ) };
+    if( $@ ){
+        pass 'constrain $_[0] NG';
+    }
+    else{
+        fail 'constrain $_[0] NG';
+    }
+    
+    eval{ $t->z( 1 ) };
+    if( $@ ){
+        pass 'constrain multi NG';
+    }
+    else{
+        fail 'constrain multi NG';
+    }        
+    
+    
+    eval{ $t->z( 2 ) };
+    if( $@ ){
+        fail 'constrain multi NG';
+    }
+    else{
+        pass 'constrain multi NG';
+    }
+    
+    eval{ $t->p(1) };
+    if( $@ ){
+        pass 'constrain non sub ref';
+    }
+    else{
+        fail 'constrain non sub ref';
+    }       
+    
+}
+
+
+# filter
+package MyTest2;
+use Simo;
+
+sub x{ ac filter => sub{ $_ * 2  } }
+sub y{ ac filter => sub{ $_[0] * 2 } }
+sub z{ ac
+    filter => [
+        sub{ $_ * 2 },
+        sub{ $_ * 2 }
+    ]
+}
+
+sub p{ ac filter => 'a' }
+
+package main;
+{
+    my $t = MyTest2->new;
+    
+    eval{ $t->x( 1 ) };
+    is( $t->x, 2, 'filter $_ OK' );
+
+    eval{ $t->y( 1 ) };
+    is( $t->y, 2, 'filter $_[0] OK' );
+    
+    eval{ $t->z( 1 ) };
+    is( $t->z, 4, 'filter multi NG' );
+    
+    eval{ $t->p(1) };
+    if( $@ ){
+        pass 'filter non sub ref';
+    }
+    else{
+        fail 'filter non sub ref';
+    }
+}
 
 
 
+# trigger
+package MyTest3;
+use Simo;
 
+sub w{ ac }
+sub x{ ac trigger => sub{ $_->w( $_->x )  } }
+sub y{ ac trigger => sub{ $_[0]->w( $_[0]->y ) } }
+sub z{ ac
+    trigger => [
+        sub{ $_->w( $_->z ); },
+        sub{ $_->w( $_->w * 2 ) }
+    ]
+}
 
+sub p{ ac trigger => 'a' }
+
+package main;
+{
+    my $t = MyTest3->new;
+    
+    eval{ $t->x( 1 ) };
+    is( $t->w, 1, 'trigger $_ OK' );
+
+    eval{ $t->y( 2 ) };
+    is( $t->w, 2, 'trigger $_[0] OK' );
+    
+    eval{ $t->z( 3 ) };
+    is( $t->w, 6 , 'trigger multi NG' );
+    
+    eval{ $t->p(1) };
+    if( $@ ){
+        pass 'trigger non sub ref';
+    }
+    else{
+        fail 'trigger non sub ref';
+    }
+}
 

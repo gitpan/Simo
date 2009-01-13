@@ -1,3 +1,10 @@
+Version 0.03_01
+    developer version
+    add new method
+       1. constrain
+       2. fillter
+       3. trigger
+       
 Version 0.0206
     referctaring Simo::ac_opt Simo::ac_define_class
     and default value logic 

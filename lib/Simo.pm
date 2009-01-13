@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0206';
+our $VERSION = '0.03_01';
 
 our $ac_opt;
 our $ac_define_class;
@@ -57,7 +57,7 @@ sub ac(@){
     
     # check and rearrange accessor option;
     my $ac_opt = {};
-    my %valid_opt = map{ $_ => 1 } qw( default set_hook get_hook hash_force );
+    my %valid_opt = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force );
         
     $ac_opt->{ default } = shift if @_ % 2;
     
@@ -116,8 +116,41 @@ sub _SIMO_ac_real{
             confess $@ if $@;
         }
         
+        # constrain
+        my $constrains = $ac_opt->{ constrain };
+        if( $constrains ){
+            $constrains = [ $constrains ] unless ref $constrains eq 'ARRAY';
+            foreach my $constrain ( @{ $constrains } ){
+                local $_ = $val;
+                eval{ $constrain->( $val ) };
+                confess $@ if $@;
+            }
+        }
+        
+        # filter
+        my $filters = $ac_opt->{ filter };
+        if( $filters ){
+            $filters = [ $filters ] unless ref $filters eq 'ARRAY';
+            foreach my $filter ( @{ $filters } ){
+                local $_ = $val;
+                eval{ $val = $filter->( $val ) };
+                confess $@ if $@;
+            }
+        }
+        
         # set new value
         $self->{ $key } = $val;
+        
+        # trigger
+        my $triggers = $ac_opt->{ trigger };
+        if( $triggers ){
+            $triggers = [ $triggers ] unless ref $triggers eq 'ARRAY';
+            foreach my $trigger ( @{ $triggers } ){
+                local $_ = $self;
+                eval{ $trigger->( $self ) };
+                confess $@ if $@;
+            }
+        }
     }
     else{
         # getter hook function
