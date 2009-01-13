@@ -1,4 +1,4 @@
-use Test::More  tests => 28;
+use Test::More  tests => 31;
 
 BEGIN{ use_ok( 'Simo' ) }
 can_ok( 'Simo', qw( ac new ) ); 
@@ -177,6 +177,25 @@ package main;
     push @{ $book->title }, 3;
     is_deeply( $ary_get, [ 1, 2, 3 ] );
     
+}
+
+package Point;
+use Simo;
+
+sub x{ ac default => 1 }
+sub y{ ac default => 1 }
+
+package main;
+# direct hash access
+{
+    my $p = Point->new;
+    $p->{ x } = 2;
+    is( $p->x, 2, 'default overwrited' );
+    
+    $p->x( 3 );
+    is( $p->{ x }, 3, 'direct access' );
+    
+    is( $p->y, 1, 'defalut normal' );
 }
 
 

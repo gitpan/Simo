@@ -3,7 +3,10 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0205';
+our $VERSION = '0.0206';
+
+our $ac_opt;
+our $ac_define_class;
 
 sub import{
     my $caller_class = caller;
@@ -64,7 +67,7 @@ sub ac(@){
     }
     
     # register accessor option
-    _SIMO_ac_opt( $ac_define_class, $key, $ac_opt );
+    $Simo::ac_opt{ $ac_define_class }{ $key } = $ac_opt;
 
     # redefine real acessor
     my $ac_redefine = qq/sub ${ac_define_class}::${key} { _SIMO_ac_real( '$key' , \@_ ) }/;
@@ -90,7 +93,10 @@ sub _SIMO_ac_real{
     my $ac_define_class = _SIMO_ac_define_class( $class, $key );
     
     # get accessor option
-    my $ac_opt = _SIMO_ac_opt( $ac_define_class, $key );
+    my $ac_opt = $Simo::ac_opt{ $ac_define_class }{ $key };
+    
+    # init by default value
+    $self->{ $key } = $ac_opt->{ default } unless exists $self->{ $key };
     
     # rearrange value;
     my $val = @vals == 1 ? $vals[0] :
@@ -99,11 +105,12 @@ sub _SIMO_ac_real{
               undef;
     
     # return value( return old_value in case setter is called )
-    my $ret = _SIMO_obj_updated($self,$key) ? $self->{$key} : $ac_opt->{default};
+    my $ret = $self->{ $key };
     
     # set value if value is defined
     if( defined( $val ) ){
         # setter hook function
+        # ( set_hook option is now not recommended. this option will be deleted in future 2019 )
         if( $ac_opt->{ set_hook } ){
             eval{ $val = $ac_opt->{ set_hook }->($self,$val) };
             confess $@ if $@;
@@ -111,25 +118,22 @@ sub _SIMO_ac_real{
         
         # set new value
         $self->{ $key } = $val;
-        
-        # updated is true
-        _SIMO_obj_updated( $self, $key, 1 );
     }
     else{
         # getter hook function
+        # ( get_hook option is now not recommended. this option will be deleted in future 2019 )
         if( $ac_opt->{ get_hook } ){
             eval{ $ret = $ac_opt->{ get_hook }->($self, $ret) };
             confess $@ if $@;
         }
     }
-    
     return $ret;
 }
 
 # Get accessor define class
 sub _SIMO_ac_define_class{
     my ( $class, $key ) = @_;
-    unless( $Simo::info{ class }{ $class }{ ac }{ $key }{ ac_define_class } ){
+    unless( $Simo::ac_define_class{ $class }{ $key } ){
         
         my $ac_define_class = ( caller 2 )[ 3 ];
         
@@ -137,9 +141,9 @@ sub _SIMO_ac_define_class{
             $ac_define_class = $1;
         }
         
-        $Simo::info{ class }{ $class }{ ac }{ $key }{ ac_define_class } = $ac_define_class;
+        $Simo::ac_define_class{ $class }{ $key } = $ac_define_class;
     }
-    return $Simo::info{ class }{ $class }{ ac }{ $key }{ ac_define_class };
+    return $Simo::ac_define_class{ $class }{ $key };
 }
 
 # Get and set accessor opt
@@ -149,15 +153,6 @@ sub _SIMO_ac_opt{
         $Simo::info{ class }{ $class }{ ac }{ $key }{ opt } = $opt;
     }
     return $Simo::info{ class }{ $class }{ ac }{ $key }{ opt };
-}
-
-# Check whether default is updated.
-sub _SIMO_obj_updated{
-    my ( $self, $key, $val ) = @_;
-    if( defined( $val ) ){
-        $Simo::info{ obj }{ $self }{ ac }{ $key }{ updated } = $val;
-    }
-    return $Simo::info{ obj }{ $self }{ ac }{ $key }{ updated };
 }
 
 # Helper to get acsessor info;

@@ -1,3 +1,10 @@
+Version 0.0206
+    referctaring Simo::ac_opt Simo::ac_define_class
+    and default value logic 
+
+Version 0.0205
+    I'm sorry. accessor listcontext is Disable. only scalar context.
+
 Version 0.0204
     Version of Document is collected.
 
