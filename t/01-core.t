@@ -211,6 +211,9 @@ sub z{ ac
 
 sub p{ ac constrain => 'a' }
 
+sub q{ ac constrain => sub{ 1 } };
+sub r{ ac constrain => sub{ 0 } };
+
 package main;
 {
     my $t = MyTest1->new;
@@ -265,13 +268,20 @@ package main;
     }
     
     eval{ $t->p(1) };
-    if( $@ ){
-        pass 'constrain non sub ref';
-    }
-    else{
-        fail 'constrain non sub ref';
-    }       
+    like( $@, qr/constrain must be code ref \( MyTest1 class's p accessor \)/,
+          'constrain non sub ref' );
     
+    eval{ $t->q( 1 ) };
+    if( $@ ){
+        fail 'constrain return true value';
+    }
+    else
+    {
+        pass 'constrain return true value';
+    }
+    
+    eval{ $t->r( 1 ) };
+    like( $@, qr/Invalid value is passed to MyTest1 class's r accessor/ , 'constrain return faluse value' );
 }
 
 
@@ -304,12 +314,8 @@ package main;
     is( $t->z, 4, 'filter multi NG' );
     
     eval{ $t->p(1) };
-    if( $@ ){
-        pass 'filter non sub ref';
-    }
-    else{
-        fail 'filter non sub ref';
-    }
+    like( $@, qr/filter must be code ref \( MyTest2 class's p accessor \)/,
+          'filter non sub ref' );
 }
 
 
@@ -342,13 +348,9 @@ package main;
     
     eval{ $t->z( 3 ) };
     is( $t->w, 6 , 'trigger multi NG' );
-    
+
     eval{ $t->p(1) };
-    if( $@ ){
-        pass 'trigger non sub ref';
-    }
-    else{
-        fail 'trigger non sub ref';
-    }
+    like( $@, qr/trigger must be code ref \( MyTest3 class's p accessor \)/,
+          'trigger non sub ref' );
 }
 

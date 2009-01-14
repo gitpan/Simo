@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.03_02';
+our $VERSION = '0.03_03';
 
 our $ac_opt;
 our $ac_define_class;
@@ -121,9 +121,13 @@ sub _SIMO_ac_real{
         if( my $constrains = $ac_opt->{ constrain } ){
             $constrains = [ $constrains ] unless ref $constrains eq 'ARRAY';
             foreach my $constrain ( @{ $constrains } ){
+                confess "constrain must be code ref ( $ac_define_class class's $key accessor )"
+                    unless ref $constrain eq 'CODE';
+                    
                 local $_ = $val;
-                eval{ $constrain->( $val ) };
-                confess $@ if $@;
+                my $ret = $constrain->( $val );
+                confess "Invalid value is passed to $ac_define_class class's $key accessor"
+                    unless $ret;
             }
         }
         
@@ -131,9 +135,11 @@ sub _SIMO_ac_real{
         if( my $filters = $ac_opt->{ filter } ){
             $filters = [ $filters ] unless ref $filters eq 'ARRAY';
             foreach my $filter ( @{ $filters } ){
+                confess "filter must be code ref ( $ac_define_class class's $key accessor )"
+                    unless ref $filter eq 'CODE';
+                                    
                 local $_ = $val;
-                eval{ $val = $filter->( $val ) };
-                confess $@ if $@;
+                $val = $filter->( $val );
             }
         }
         
@@ -144,9 +150,11 @@ sub _SIMO_ac_real{
         if( my $triggers = $ac_opt->{ trigger } ){
             $triggers = [ $triggers ] unless ref $triggers eq 'ARRAY';
             foreach my $trigger ( @{ $triggers } ){
+                confess "trigger must be code ref ( $ac_define_class class's $key accessor )"
+                    unless ref $trigger eq 'CODE';
+
                 local $_ = $self;
-                eval{ $trigger->( $self ) };
-                confess $@ if $@;
+                $trigger->( $self );
             }
         }
     }

@@ -1,3 +1,8 @@
+Version 0.03_03
+    the following
+    1. auto confess for constrain option
+    2. constrain, filter, and trigger option confess unless it isn't code ref
+    
 Version 0.03_02
     referctering
         DESTROY method is deleted.
