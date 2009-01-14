@@ -69,7 +69,7 @@ package main;
         my $book = Book->new( 'a' );
     };
     like( 
-        $@, qr/please pass key value pairs to new method/,
+        $@, qr/key-value pairs must be passed to new method/,
         'not pass key value pair'
     );
 }
@@ -78,7 +78,7 @@ package main;
     eval{
         my $book = Book->new( noexist => 1 );
     };
-    ok( $@, 'invalid key to new method' );
+    like( $@, qr/Book cannot call noexist/, 'invalid key to new method' );
 }
 
 # set and get array and hash
@@ -148,7 +148,7 @@ package main;
         $book->raiting;
     };
     like( $@,
-        qr/noexist is not valid accessor option/,
+        qr/noexist of Book::raiting is invalid accessor option/,
         'no exist accessor option',
     );
 }
@@ -268,7 +268,7 @@ package main;
     }
     
     eval{ $t->p(1) };
-    like( $@, qr/constrain must be code ref \( MyTest1 class's p accessor \)/,
+    like( $@, qr/constrain of MyTest1::p must be code ref/,
           'constrain non sub ref' );
     
     eval{ $t->q( 1 ) };
@@ -281,7 +281,7 @@ package main;
     }
     
     eval{ $t->r( 1 ) };
-    like( $@, qr/Invalid value is passed to MyTest1 class's r accessor/ , 'constrain return faluse value' );
+    like( $@, qr/Invalid value 1 is passed to MyTest1::r/ , 'constrain return faluse value' );
 }
 
 
@@ -314,7 +314,7 @@ package main;
     is( $t->z, 4, 'filter multi NG' );
     
     eval{ $t->p(1) };
-    like( $@, qr/filter must be code ref \( MyTest2 class's p accessor \)/,
+    like( $@, qr/filter of MyTest2::p must be code ref/,
           'filter non sub ref' );
 }
 
@@ -350,7 +350,7 @@ package main;
     is( $t->w, 6 , 'trigger multi NG' );
 
     eval{ $t->p(1) };
-    like( $@, qr/trigger must be code ref \( MyTest3 class's p accessor \)/,
+    like( $@, qr/trigger of MyTest3::p must be code ref/,
           'trigger non sub ref' );
 }
 

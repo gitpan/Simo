@@ -1,3 +1,6 @@
+Version 0.03_04
+    1. confess convert to croak because confess is bad looking.
+
 Version 0.03_03
     the following
     1. auto confess for constrain option

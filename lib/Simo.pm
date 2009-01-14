@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.03_03';
+our $VERSION = '0.03_04';
 
 our $ac_opt;
 our $ac_define_class;
@@ -26,21 +26,22 @@ sub import{
 }
 
 sub new{
-    my ( $class, @args ) = @_;
+    my ( $proto, @args ) = @_;
     
     # check args
     @args = %{ $args[0] } if ref $args[0] eq 'HASH';
-    confess 'please pass key value pairs to new method' if @args % 2;
+    croak 'key-value pairs must be passed to new method' if @args % 2;
     
     # bless
     my $self = {};
-    bless $self, ref $class || $class;
+    my $class = ref $proto || $proto;
+    bless $self, $class;
     
     # set args
-    while( my ( $key, $val ) = splice( @args, 0, 2 ) ){
+    while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
+        croak "${class} cannot call $attr" unless $self->can( $attr );
         no strict 'refs';
-        eval{ $self->$key( $val ) };
-        croak $@ if $@;
+        $self->$attr( $val );
     }
     return $self;
 }
@@ -49,11 +50,10 @@ sub new{
 sub ac(@){
 
     # accessor info
-    my ( $self, $key, $ac_define_class, @vals ) = _SIMO_get_ac_info();
+    my ( $self, $attr, $ac_define_class, @vals ) = _SIMO_get_ac_info();
     
     # check accessor info
     my $class = ref $self;
-    confess "Cannot call accessor from Class." unless $class;
     
     # check and rearrange accessor option;
     my $ac_opt = {};
@@ -62,15 +62,15 @@ sub ac(@){
     $ac_opt->{ default } = shift if @_ % 2;
     
     while( my( $key, $val ) = splice( @_, 0, 2 ) ){
-        confess "$key is not valid accessor option" unless $valid_opt{ $key };
+        croak "$key of ${ac_define_class}::$attr is invalid accessor option" unless $valid_opt{ $key };
         $ac_opt->{ $key } = $val;
     }
     
     # register accessor option
-    $Simo::ac_opt{ $ac_define_class }{ $key } = $ac_opt;
+    $Simo::ac_opt{ $ac_define_class }{ $attr } = $ac_opt;
 
     # redefine real acessor
-    my $ac_redefine = qq/sub ${ac_define_class}::${key} { _SIMO_ac_real( '$key' , \@_ ) }/;
+    my $ac_redefine = qq/sub ${ac_define_class}::$attr { _SIMO_ac_real( '$attr' , \@_ ) }/;
     
     {
         no warnings 'redefine';
@@ -78,26 +78,26 @@ sub ac(@){
     }
     
     # call accessor
-    $self->$key( @vals );
+    $self->$attr( @vals );
 }
 
 # Real accessor.
 sub _SIMO_ac_real{
-    my ( $key, $self, @vals ) = @_;
+    my ( $attr, $self, @vals ) = @_;
     
     # check args
     my $class = ref $self;
-    confess "Cannot call accessor from Class." unless $class;
+    croak "$attr must be called from object." unless $class;
     
     # get accessor defined class
-    $Simo::ac_define_class{ $class }{ $key } ||= _SIMO_get_ac_define_class( $class, $key );
-    my $ac_define_class = $Simo::ac_define_class{ $class }{ $key };
+    $Simo::ac_define_class{ $class }{ $attr } ||= _SIMO_get_ac_define_class( $class, $attr );
+    my $ac_define_class = $Simo::ac_define_class{ $class }{ $attr };
     
     # get accessor option
-    my $ac_opt = $Simo::ac_opt{ $ac_define_class }{ $key };
+    my $ac_opt = $Simo::ac_opt{ $ac_define_class }{ $attr };
     
     # init by default value
-    $self->{ $key } = $ac_opt->{ default } unless exists $self->{ $key };
+    $self->{ $attr } = $ac_opt->{ default } unless exists $self->{ $attr };
     
     # rearrange value;
     my $val = @vals == 1 ? $vals[0] :
@@ -106,7 +106,7 @@ sub _SIMO_ac_real{
               undef;
     
     # return value( return old_value in case setter is called )
-    my $ret = $self->{ $key };
+    my $ret = $self->{ $attr };
     
     # set value if value is defined
     if( defined( $val ) ){
@@ -121,12 +121,12 @@ sub _SIMO_ac_real{
         if( my $constrains = $ac_opt->{ constrain } ){
             $constrains = [ $constrains ] unless ref $constrains eq 'ARRAY';
             foreach my $constrain ( @{ $constrains } ){
-                confess "constrain must be code ref ( $ac_define_class class's $key accessor )"
+                croak "constrain of ${ac_define_class}::$attr must be code ref"
                     unless ref $constrain eq 'CODE';
                     
                 local $_ = $val;
                 my $ret = $constrain->( $val );
-                confess "Invalid value is passed to $ac_define_class class's $key accessor"
+                croak "Invalid value $val is passed to ${ac_define_class}::$attr"
                     unless $ret;
             }
         }
@@ -135,7 +135,7 @@ sub _SIMO_ac_real{
         if( my $filters = $ac_opt->{ filter } ){
             $filters = [ $filters ] unless ref $filters eq 'ARRAY';
             foreach my $filter ( @{ $filters } ){
-                confess "filter must be code ref ( $ac_define_class class's $key accessor )"
+                croak "filter of ${ac_define_class}::$attr must be code ref"
                     unless ref $filter eq 'CODE';
                                     
                 local $_ = $val;
@@ -144,13 +144,13 @@ sub _SIMO_ac_real{
         }
         
         # set new value
-        $self->{ $key } = $val;
+        $self->{ $attr } = $val;
         
         # trigger
         if( my $triggers = $ac_opt->{ trigger } ){
             $triggers = [ $triggers ] unless ref $triggers eq 'ARRAY';
             foreach my $trigger ( @{ $triggers } ){
-                confess "trigger must be code ref ( $ac_define_class class's $key accessor )"
+                croak "trigger of ${ac_define_class}::$attr must be code ref"
                     unless ref $trigger eq 'CODE';
 
                 local $_ = $self;
@@ -171,7 +171,7 @@ sub _SIMO_ac_real{
 
 # Get accessor define class
 sub _SIMO_get_ac_define_class{
-    my ( $class, $key ) = @_;
+    my ( $class, $attr ) = @_;
     
     my $ac_define_class = ( caller 2 )[ 3 ];
     
@@ -188,9 +188,9 @@ sub _SIMO_get_ac_info {
     
     my ( $self, @vals ) = @DB::args;
     my $sub = $caller[ 3 ];
-    my ( $ac_define_class, $key ) = $sub =~ /^(.*)::(.+)$/;
+    my ( $ac_define_class, $attr ) = $sub =~ /^(.*)::(.+)$/;
 
-    return ( $self, $key, $ac_define_class, @vals );
+    return ( $self, $attr, $ac_define_class, @vals );
 }
 
 =head1 NAME
@@ -199,7 +199,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0205
+Version 0.03_04
 
 =cut
 

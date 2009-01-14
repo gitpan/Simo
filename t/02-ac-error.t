@@ -15,7 +15,7 @@ package main;
     };
     
     like( $@,
-        qr/Cannot call accessor from Class/,
+        qr/title must be called from object/,
         'accssor form class,not object'
     );
     
@@ -26,7 +26,7 @@ package main;
     };
     
     like( $@,
-        qr/Cannot call accessor from Class/,
+        qr/title must be called from object/,
         'accssor form class,not object'
     );    
 }
