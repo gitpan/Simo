@@ -78,7 +78,7 @@ package main;
     eval{
         my $book = Book->new( noexist => 1 );
     };
-    like( $@, qr/Book cannot call noexist/, 'invalid key to new method' );
+    like( $@, qr/Invalid key 'noexist' is passed to Book::new/, 'invalid key to new method' );
 }
 
 # set and get array and hash
@@ -281,7 +281,7 @@ package main;
     }
     
     eval{ $t->r( 1 ) };
-    like( $@, qr/Invalid value 1 is passed to MyTest1::r/ , 'constrain return faluse value' );
+    like( $@, qr/Illegal value 1 is passed to MyTest1::r/ , 'constrain return faluse value' );
 }
 
 

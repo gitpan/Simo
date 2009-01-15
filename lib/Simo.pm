@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.03_04';
+our $VERSION = '0.03_05';
 
 our $ac_opt;
 our $ac_define_class;
@@ -39,7 +39,7 @@ sub new{
     
     # set args
     while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
-        croak "${class} cannot call $attr" unless $self->can( $attr );
+        croak "Invalid key '$attr' is passed to ${class}::new" unless $self->can( $attr );
         no strict 'refs';
         $self->$attr( $val );
     }
@@ -126,7 +126,7 @@ sub _SIMO_ac_real{
                     
                 local $_ = $val;
                 my $ret = $constrain->( $val );
-                croak "Invalid value $val is passed to ${ac_define_class}::$attr"
+                croak "Illegal value $val is passed to ${ac_define_class}::$attr"
                     unless $ret;
             }
         }
@@ -199,7 +199,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.03_04
+Version 0.03_05
 
 =cut
 
@@ -211,202 +211,115 @@ The feature is that
 
 =over 4
 
-=item 1.You can write accessors in very simple way.
+=item 1. You can define accessors in very simple way.
 
-=item 2.Inheritable new method is prepared.
+=item 2. Overridable new method is prepared.
 
-=item 3.You can set default value and hook function for accessors
+=item 3. You can define default value of attribute.
+
+=item 4. Simo is very small. so You can install and excute it very fast.
 
 =back
 
-If You use Simo, you are free from bitter work 
-writing new and accessors repeatedly
+If you use Simo, you are free from bitter work 
+writing new and accessors repeatedly.
 
 =cut
 
 =head1 SYNOPSIS
 
+=head2 Define class and accessors.
+
     package Book;
     use Simo;
     
-    # simple accessors
+    # define accessors
     sub title{ ac }
     
-    # having default value
-    sub author{ ac 'Kimoto' }
+    # define default value
+    sub author{ ac default => 'Kimoto' }
     
-    # all accessor option 
-    sub description{ ac
-        default => 'This is good book',
-        set_hook => sub{
-            my ( $self, $val ) = @_;
-            # do what you want to do
-            return $val;
-        },
-        get_hook => sub{
-            my ( $self, $val ) = @_;
-            # do what you want to do
-            return $val;
-        },
-        hash_force => 1
+    # define constrain subroutine
+    sub price{ ac constrain => sub{ /^\d+$/ } } # price must be integer.
+
+    # define filter subroutine
+    sub description{ ac filter => sub{ uc } } # convert to upper case.
+
+    # define trigger subroutine
+    sub issue_datetime{ ac trigger => \&update_issue_date }
+    sub issue_date{ ac } # if issue_datetime is updated, issue_date is updated.
+    
+    sub update_issue_date{
+        my $self = shift;
+        my $date = substr( $self->issue_datetime, 0, 10 );
+        $self->issue_date( $date );
     }
     1;
+=cut
+
+=head2 Using class and accessor
+
+    use strict;
+    use warnings;
+    use Book;
+
+    # create object
+    my $book = Book->new( title => 'OO tutorial' );
+
+    # get attribute
+    my $author = $book->author;
+
+    # set attribute
+    $book->author( 'Ken' );
+
+    # constrain( If try to set illegal value, this call will die )
+    $book->price( 'a' ); 
+
+    # filter ( convert to 'IT IS USEFUL' )
+    $book->description( 'It is useful' );
+
+    # trigger( issue_date is updated '2009-01-01' )
+    $book->issue_datetime( '2009-01-01 12:33:45' );
+    my $issue_date = $book->issue_date;
+
+=cut
 
 =head1 DESCRIPTION
 
-=head2 Creating class and accessors
+=head2 Define class and accessors
 
-You can create class and accessors.
+You can define class and accessors in simple way.
+
+new method is automatically created, and title accessor is defined.
 
     package Book;
     use Simo;
-    
-    # accessors
-    sub title{ ac }
-    sub author{ ac }
-    sub description{ ac }
-    1;
 
-This sample create Book class and three accessor mothods( title,author and description ),
-and new method is automatically created.
+    sub title{ ac }
+    1;
 
 =cut
 
 =head2 Using class and accessors
 
-You can use Book class.
+You can pass key-value pairs to new, and can get and set value.
+
     use Book;
     
-    # constructor
+    # create object
     my $book = Book->new(
-        title => 'Happy book',
-        author => 'Ken',
-        description => 'this give you happy',
+        title => 'OO tutorial',
     );
     
     # get value
-    my $title = $book->title; # 'Happy book'
+    my $title = $book->title;
     
     # set value
-    $book->author( 'Taro' );
-
-You can pass key-value pairs to new method. Key is need to be same name as accessor.
-
-If you pass nonexistent key, script will die.
-
-you can get value :
-
-    $book->title;
-
-you can set value :
-
-    $book->title( 'Taro' );
-    
-=head2 Get old value
-
-You can get old value when you use accessor as setter.
-
-    $book->author( 'Ken' );
-    my $old_value = $book->author( 'Taro' ); # $old_value is 'Ken'
-
-=head2 accessor having Default value
-
-You can set default value for accessor.
-
-    package Book;
-    use Simo;
-
-    sub title{ ac 'Papa' }
-    
-You get 'Papa' if 'title' field is not initialized.
+    $book->title( 'The simplest OO' );
 
 =cut
 
-=head2 Setter Hook function for validation or filter or etc.
-
-You can set set_hook function for accessor.
-
-    package Book;
-    use Simo;
-    
-    # set_hook function for accessor
-    sub date{ ac set_hook => \&date_filter }
-    
-    # set_hook function definition
-    sub date_filter{
-        my ( $self, $val ) = @_;
-        $val =~ s/-//g; # ( '2008-10-10' -> '20081010' )
-        return $val;
-    }
-    1;
-
-If you set date this way
-    $book->title( '2008-08-11' );
-    
-'2008-08-08' is filtered, and change to '20080811'.
-
-=cut
-
-=head2 set_hook function arguments and return value
-
-set_hook function receive two args( $self and $val ).
-
-In this example, $self is $book object.
-
-$val is passed value '2008-08-11'
-
-if you pass array to setter, $val has been converted to array ref.
-
-and you must return scalar, not list. 
-
-=cut
-
-=head2 Getter Hook function for initialization or etc.
-
-You can set get_hook function for accessor.
-
-    package Book;
-    use Simo;
-    
-    # get_hook function for accessor
-    sub date{ ac
-        get_hook => sub{
-            my ( $self, $val ) = @_;
-            if( !$val ){ # val is $self->{ 'conf' }
-                
-                $val = localtime;
-                
-                $self->date( $val ); # if you set 
-            }
-            return $val;
-        }
-    }
-
-    1;
-
-you get date
-
-    $book->date;
-
-if $book->{ 'date' } is undef, $book->date return current localtime.
-
-get_hook option is useful, if you want to set default value in dynamically, not Statically.
-
-=cut
-
-=head2 get_hook function arguments and return value
-
-get_hook function receive two args( $self and $val ).
-
-In this example, $self is $book object.
-
-$val is current value undef.
-
-and you must return scalar, not list. 
-
-=cut
-
-=head2 Automatically type convert
+=head2 Automatically array convert
 
 If you pass array to accessor, array convert to array ref.
     $book->title( 'a', 'b' );
@@ -414,62 +327,85 @@ If you pass array to accessor, array convert to array ref.
 
 =cut
 
-=head2 Accessor option
+=head2 Accessor options
 
-You can set accessor option.
+=head3 default option - define default value of attribute
 
-=head3 default option
+You can define default value of attribute.
 
-You can set default value for accessor.
-
-    sub author{ ac 'Kimoto' }
-
-or explicitely
-
-    sub author{ ac default => 'Kimoto' }
+    sub title{ ac default => 'Perl is very interesting' }
 
 =cut
 
-=head3 set_hook option
+=head3 constrain option - restrict illegal value is set
 
-You can define hook function for setter
+you can constrain setting value.
 
-    sub date{ ac set_hook => \&filter }
+    sub price{ ac constrain => sub{ /^\d+$/ } }
+
+For example, If you call $book->price( 'a' ), this call is die, because 'a' is not number.
+
+'a' is set to $_. so if you can use regular expression, omit $_.
+
+you can write not omiting $_.
+
+    sub price{ ac constrain => sub{ $_ > 0 && $_ < 3 } }
+
+If you display your message when program is die, you call craok.
     
-    sub filter{
-        my ( $self, $val ) = @_;
-        # ...
-        return $some_val;
-    }
-    
-or using anonymous function
+    use Carp;
+    sub price{ ac constrain => sub{ $_ > 0 && $_ < 3 or croak "Illegal value" } }
 
-    sub data{ ac 
-        set_hook => sub{
-            my( $self, $val ) = @_;
-            # ...
-            return $some_val;
-        }
-    }
+and 'a' is alse set to first argument. So you can receive 'a' as first argument.
+
+   sub price{ ac constrain => \&_is_number }
+   
+   sub _is_number{
+       my $val = shift;
+       return $val =~ /^\d+$/;
+   }
+
+and you can define more than one constrain.
+
+    sub price{ ac constrain => [ \&_is_number, \&_is_non_zero ] }
 
 =cut
 
-=head3 get_hook option
+=head3 filter option - filter
 
-You can define hook function for getter
+you can filter setting value.
 
-    sub date{ ac
-        get_hook => sub{
-            my ( $self, $val ) = @_;
-            if( !$val ){ # val is $self->{ 'conf' }
-                
-                $val = localtime;
-                
-                $self->date( $val ); # if you set 
-            }
-            return $val;
-        }
+    sub description{ ac filter => sub{ uc } }
+
+setting value is $_ and frist argument like constrain.
+
+and you can define more than one filter.
+
+    sub description{ ac filter => [ \&uc, \&quoute ] }
+
+=cut
+
+=head3 trigger option - subroutine called after value is set.
+
+You can define subroutine called after value is set.
+
+For example, issue_datetime is set, issue_date is update.
+
+$self is set to $_ and $_[0] different from constrain and filter.
+
+    sub issue_datetime{ ac trigger => \&update_issue_date }
+    sub issue_date{ ac }
+    
+    sub update_issue_date{
+        my $self = shift;
+        my $date = substr( $self->issue_datetime, 0, 10 );
+        $self->issue_date( $date );
     }
+
+and you can define more than one trigger.
+
+    sub issue_datetime{ ac trigger => [ \&update_issue_date, \&update_issue_time ] }
+
 =cut
 
 =head3 hash_force option
@@ -490,68 +426,41 @@ If you use hash_force option, you convert list to hash ref
 
 =cut
 
-=head2 Multiple accessor option setting sample
+=head3 set_hook option
 
-    # one line
-    sub title{ ac 'Pure love', hook => \&filter, hash_force => 1 }
-    
-    sub filter{
-        # ..
-    }
-    
-    # multiple line, hook function is anonimous
-    sub title{ ac { k => 1 },
-        hash_force => 1,
-        hook => sub {
-            # ..
-        }
-    }    
-    
-    # multiple line, default is explicitely, hook function is anonimous
-    sub title{ ac
-        default => { k => 1 },
-        hash_force => 1,
-        hook => sub {
-            # ..
-        }
-    }
+set_hook option is now not recommended. this option will be deleted in future 2019/01/01
 
 =cut
 
-=head1 EXPORT
+=head3 get_hook option
 
-This class exports ac function. you can use ac function to implement accessor. 
+get_hook option is now not recommended. this option will be deleted in future 2019/01/01
+
+=cut
+
+=head2 Get old value
+
+You can get old value when you use accessor as setter.
+
+    $book->author( 'Ken' );
+    my $old_value = $book->author( 'Taro' ); # $old_value is 'Ken'
+
+=cut
 
 =head1 FUNCTIONS
 
 =head2 ac
 
-You can define accsessor using ac function.
-
-    package Book;
-    use Simo;
-    
-    sub title{ ac }
-    ...
-
-You can use this accessor.
-
-Get is
-    $book->title;
-
-Set is 
-    $book->title( 'Bird Adventure' );
+ac is exported. This is used by define accessor. 
 
 =cut
 
 =head2 new
 
-New method is created automatically.
-it receive key-value pairs as args.
-
-    my $book = Book->new( title => 'PaPa is good', author => 'MaMa' );
+orveridable new method.
 
 =cut
+
 
 =head1 MORE TECHNIQUES
 
@@ -626,6 +535,16 @@ Maybe, You will be wrong sometime. So I recomend you the following writing.
 
 It is like other language class Definition and I think looking is not bat.
 and you are not likely to choose wrong order.
+
+=head2 COUTION
+
+set_hook and get_hook option is not recomended. these option will be deleted in future 2019/01/01
+
+and non named defalut value definition is not recommended. this expression cannot be used in future 2019/01/01
+
+    sub title{ ac 'OO tutorial' } # not recommend. cannot be used in future.
+
+=cut
 
 =head1 AUTHOR
 

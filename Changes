@@ -1,3 +1,7 @@
+Version 0.03_05
+    1. document update
+    2. new method illegal key setting error message change
+
 Version 0.03_04
     1. confess convert to croak because confess is bad looking.
 
