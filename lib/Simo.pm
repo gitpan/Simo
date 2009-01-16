@@ -3,10 +3,10 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.03_05';
+our $VERSION = '0.03_06';
 
-our $ac_opt;
-our $ac_define_class;
+our $ac_opt = {};
+our $ac_define_class = {};
 
 sub import{
     my $caller_class = caller;
@@ -90,8 +90,8 @@ sub _SIMO_ac_real{
     croak "$attr must be called from object." unless $class;
     
     # get accessor defined class
-    $Simo::ac_define_class{ $class }{ $attr } ||= _SIMO_get_ac_define_class( $class, $attr );
-    my $ac_define_class = $Simo::ac_define_class{ $class }{ $attr };
+    $Simo::ac_define_class->{ $class }{ $attr } ||= _SIMO_get_ac_define_class( $class, $attr );
+    my $ac_define_class = $Simo::ac_define_class->{ $class }{ $attr };
     
     # get accessor option
     my $ac_opt = $Simo::ac_opt{ $ac_define_class }{ $attr };
@@ -99,17 +99,17 @@ sub _SIMO_ac_real{
     # init by default value
     $self->{ $attr } = $ac_opt->{ default } unless exists $self->{ $attr };
     
-    # rearrange value;
-    my $val = @vals == 1 ? $vals[0] :
-              @vals >= 2 && $ac_opt->{ hash_force } ? { @vals } :
-              @vals >= 2 ? [ @vals ] :
-              undef;
-    
     # return value( return old_value in case setter is called )
     my $ret = $self->{ $attr };
     
     # set value if value is defined
-    if( defined( $val ) ){
+    if( @vals ){
+        # rearrange value;
+        my $val = @vals == 1 ? $vals[0] :
+                  @vals >= 2 && $ac_opt->{ hash_force } ? { @vals } :
+                  @vals >= 2 ? [ @vals ] :
+                  undef;
+    
         # setter hook function
         # ( set_hook option is now not recommended. this option will be deleted in future 2019 )
         if( $ac_opt->{ set_hook } ){
@@ -435,6 +435,28 @@ set_hook option is now not recommended. this option will be deleted in future 20
 =head3 get_hook option
 
 get_hook option is now not recommended. this option will be deleted in future 2019/01/01
+
+=cut
+
+=head2 constrain, filter, trigger Image
+
+=over 4
+
+=item 1. val is passed to constrain subroutine.
+
+=item 2. val is passed to filter subroutine.
+
+=item 3. val is set
+
+=item 4. trigger subroutine is called
+
+=back
+
+       |---------|   |------|                  |-------| 
+       |         |   |      |                  |       | 
+ val-->|constrain|-->|filter|-->(val is set)-->|trigger| 
+       |         |   |      |                  |       | 
+       |---------|   |------|                  |-------| 
 
 =cut
 

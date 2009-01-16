@@ -354,3 +354,16 @@ package main;
           'trigger non sub ref' );
 }
 
+# undef value set
+package T1;
+use Simo;
+
+sub a{ ac }
+
+package main;
+{
+    my $t = T1->new( a => 1 );
+    $t->a( undef );
+    ok( !defined $t->a, 'undef value set' );
+}
+

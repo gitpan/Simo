@@ -1,3 +1,6 @@
+Version 0.03_06
+    1. fix bag undef value cannot be set.
+
 Version 0.03_05
     1. document update
     2. new method illegal key setting error message change
