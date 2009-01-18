@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.03_06';
+our $VERSION = '0.0401';
 
 our $ac_opt = {};
 our $ac_define_class = {};
@@ -199,7 +199,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.03_05
+Version 0.0401
 
 =cut
 
@@ -257,7 +257,7 @@ writing new and accessors repeatedly.
     1;
 =cut
 
-=head2 Using class and accessor
+=head2 Using class and accessors
 
     use strict;
     use warnings;
@@ -322,6 +322,7 @@ You can pass key-value pairs to new, and can get and set value.
 =head2 Automatically array convert
 
 If you pass array to accessor, array convert to array ref.
+
     $book->title( 'a', 'b' );
     $book->title; # get [ 'a', 'b' ], not ( 'a', 'b' )
 
@@ -329,7 +330,7 @@ If you pass array to accessor, array convert to array ref.
 
 =head2 Accessor options
 
-=head3 default option - define default value of attribute
+=head3 default option
 
 You can define default value of attribute.
 
@@ -337,7 +338,7 @@ You can define default value of attribute.
 
 =cut
 
-=head3 constrain option - restrict illegal value is set
+=head3 constrain option
 
 you can constrain setting value.
 
@@ -371,7 +372,7 @@ and you can define more than one constrain.
 
 =cut
 
-=head3 filter option - filter
+=head3 filter option
 
 you can filter setting value.
 
@@ -385,7 +386,7 @@ and you can define more than one filter.
 
 =cut
 
-=head3 trigger option - subroutine called after value is set.
+=head3 trigger option
 
 You can define subroutine called after value is set.
 
@@ -438,7 +439,7 @@ get_hook option is now not recommended. this option will be deleted in future 20
 
 =cut
 
-=head2 constrain, filter, trigger Image
+=head2 Order of constrain, filter and trigger
 
 =over 4
 
@@ -558,13 +559,15 @@ Maybe, You will be wrong sometime. So I recomend you the following writing.
 It is like other language class Definition and I think looking is not bat.
 and you are not likely to choose wrong order.
 
-=head2 COUTION
+=cut
 
-set_hook and get_hook option is not recomended. these option will be deleted in future 2019/01/01
+=head1 CAUTION
 
-and non named defalut value definition is not recommended. this expression cannot be used in future 2019/01/01
+set_hook and get_hook option is now not recomended. these option will be deleted in future 2019/01/01
 
-    sub title{ ac 'OO tutorial' } # not recommend. cannot be used in future.
+and non named defalut value definition is not recommended. this expression cannot be available in future 2019/01/01
+
+    sub title{ ac 'OO tutorial' } # not recommend. cannot be available in future.
 
 =cut
 
