@@ -1,3 +1,9 @@
+Version 0.04_02
+    1. warn in case constrain, filter, trigger options order is invalid
+
+Version 0.04_01 
+    1. document is writed at new version.
+
 Version 0.03_06
     1. fix bag undef value cannot be set.
 

@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0401';
+our $VERSION = '0.0402';
 
 our $ac_opt = {};
 our $ac_define_class = {};
@@ -47,6 +47,8 @@ sub new{
 }
 
 # Accessor register
+our %valid_ac_opt = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force );
+
 sub ac(@){
 
     # accessor info
@@ -57,12 +59,14 @@ sub ac(@){
     
     # check and rearrange accessor option;
     my $ac_opt = {};
-    my %valid_opt = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force );
-        
+    
     $ac_opt->{ default } = shift if @_ % 2;
+    my $hook_options_exist = {};
     
     while( my( $key, $val ) = splice( @_, 0, 2 ) ){
-        croak "$key of ${ac_define_class}::$attr is invalid accessor option" unless $valid_opt{ $key };
+        croak "$key of ${ac_define_class}::$attr is invalid accessor option" unless $valid_ac_opt{ $key };
+        carp "${ac_define_class}::$attr : $@" unless _SIMO_check_hook_options_order( $key, $hook_options_exist );
+        
         $ac_opt->{ $key } = $val;
     }
     
@@ -79,6 +83,24 @@ sub ac(@){
     
     # call accessor
     $self->$attr( @vals );
+}
+
+# check hook option order ( constrain, filter, and trigger )
+our %valid_hook_options = ( constrain => 1, filter => 2, trigger => 3 );
+
+sub _SIMO_check_hook_options_order{
+    my ( $key, $hook_options_exist ) = @_;
+    
+    return 1 unless $valid_hook_options{ $key };
+    
+    foreach my $hook_option_exist ( keys %{ $hook_options_exist } ){
+        if( $valid_hook_options{ $key } < $valid_hook_options{ $hook_option_exist } ){
+            $@ = "$key option should be appear before $hook_option_exist option";
+            return 0;
+        }
+    }
+    $hook_options_exist->{ $key } = 1;
+    return 1;
 }
 
 # Real accessor.
@@ -199,7 +221,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0401
+Version 0.0402
 
 =cut
 
