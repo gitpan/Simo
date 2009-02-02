@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05_01';
+our $VERSION = '0.05_02';
 
 sub import{
     my $caller_pkg = caller;
@@ -47,9 +47,17 @@ sub new{
 our $AC_OPT = {};
 our %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force );
 
-# register accessor
+# create accessor
 sub ac(@){
+    # Simo process
+    my ( $self, $attr, @vals ) = _SIMO_process( @_ );
+    
+    # call accessor
+    $self->$attr( @vals );
+}
 
+# Simo process. register accessor option and create accessor.
+sub _SIMO_process{
     # accessor info
     my ( $self, $attr, $pkg, @vals ) = _SIMO_get_ac_info();
     
@@ -78,9 +86,7 @@ sub ac(@){
         no warnings 'redefine';
         *{ "${pkg}::$attr" } = eval _SIMO_create_accessor( $pkg, $attr );;
     }
-    
-    # call accessor
-    $self->$attr( @vals );
+    return ( $self, $attr, @vals );
 }
 
 # check hook option order ( constrain, filter, and trigger )
@@ -214,7 +220,7 @@ sub _SIMO_create_accessor{
 # Helper to get acsessor info;
 sub _SIMO_get_ac_info {
     package DB;
-    my @caller = caller 2;
+    my @caller = caller 3;
     
     my ( $self, @vals ) = @DB::args;
     my $sub = $caller[ 3 ];
@@ -229,7 +235,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.05_01
+Version 0.05_02
 
 =cut
 
