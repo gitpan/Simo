@@ -1,3 +1,6 @@
+Version 0.05_01
+    1. I write accessor by using meta programing.
+
 Version 0.04_02
     1. warn in case constrain, filter, trigger options order is invalid
 

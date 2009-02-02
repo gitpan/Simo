@@ -2,35 +2,6 @@ use Test::More 'no_plan';
 use strict;
 use warnings;
 
-package Book;
-use Simo;
-
-sub title{ ac }
-
-package main;
-
-{
-    eval{
-        Book->title;
-    };
-    
-    like( $@,
-        qr/title must be called from object/,
-        'accssor form class,not object'
-    );
-    
-    my $book = Book->new( title => 1 );
-    
-    eval{
-       Book->title;
-    };
-    
-    like( $@,
-        qr/title must be called from object/,
-        'accssor form class,not object'
-    );    
-}
-
 package T1;
 use Simo;
 

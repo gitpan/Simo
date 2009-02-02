@@ -3,21 +3,18 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0402';
-
-our $ac_opt = {};
-our $ac_define_class = {};
+our $VERSION = '0.05_01';
 
 sub import{
-    my $caller_class = caller;
+    my $caller_pkg = caller;
     
     {
         # export function
         no strict 'refs';
-        *{ "${caller_class}::ac" } = \&Simo::ac;
+        *{ "${caller_pkg}::ac" } = \&Simo::ac;
         
         # caller inherit Simo
-        push @{ "${caller_class}::ISA" }, __PACKAGE__;
+        push @{ "${caller_pkg}::ISA" }, __PACKAGE__;
     }
 
     # auto strict and warnings
@@ -34,28 +31,27 @@ sub new{
     
     # bless
     my $self = {};
-    my $class = ref $proto || $proto;
-    bless $self, $class;
+    my $pkg = ref $proto || $proto;
+    bless $self, $pkg;
     
     # set args
     while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
-        croak "Invalid key '$attr' is passed to ${class}::new" unless $self->can( $attr );
+        croak "Invalid key '$attr' is passed to ${pkg}::new" unless $self->can( $attr );
         no strict 'refs';
         $self->$attr( $val );
     }
     return $self;
 }
 
-# Accessor register
-our %valid_ac_opt = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force );
+# accessor option
+our $AC_OPT = {};
+our %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force );
 
+# register accessor
 sub ac(@){
 
     # accessor info
-    my ( $self, $attr, $ac_define_class, @vals ) = _SIMO_get_ac_info();
-    
-    # check accessor info
-    my $class = ref $self;
+    my ( $self, $attr, $pkg, @vals ) = _SIMO_get_ac_info();
     
     # check and rearrange accessor option;
     my $ac_opt = {};
@@ -64,21 +60,23 @@ sub ac(@){
     my $hook_options_exist = {};
     
     while( my( $key, $val ) = splice( @_, 0, 2 ) ){
-        croak "$key of ${ac_define_class}::$attr is invalid accessor option" unless $valid_ac_opt{ $key };
-        carp "${ac_define_class}::$attr : $@" unless _SIMO_check_hook_options_order( $key, $hook_options_exist );
+        croak "$key of ${pkg}::$attr is invalid accessor option" 
+            unless $VALID_AC_OPT{ $key };
+        
+        carp "${pkg}::$attr : $@" 
+            unless _SIMO_check_hook_options_order( $key, $hook_options_exist );
         
         $ac_opt->{ $key } = $val;
     }
     
     # register accessor option
-    $Simo::ac_opt{ $ac_define_class }{ $attr } = $ac_opt;
+    $AC_OPT->{ $pkg }{ $attr } = $ac_opt;
 
-    # redefine real acessor
-    my $ac_redefine = qq/sub ${ac_define_class}::$attr { _SIMO_ac_real( '$attr' , \@_ ) }/;
-    
+    # create accessor
     {
+        no strict 'refs';
         no warnings 'redefine';
-        eval $ac_redefine;
+        *{ "${pkg}::$attr" } = eval _SIMO_create_accessor( $pkg, $attr );;
     }
     
     # call accessor
@@ -86,15 +84,15 @@ sub ac(@){
 }
 
 # check hook option order ( constrain, filter, and trigger )
-our %valid_hook_options = ( constrain => 1, filter => 2, trigger => 3 );
+our %VALID_HOOK_OPT = ( constrain => 1, filter => 2, trigger => 3 );
 
 sub _SIMO_check_hook_options_order{
     my ( $key, $hook_options_exist ) = @_;
     
-    return 1 unless $valid_hook_options{ $key };
+    return 1 unless $VALID_HOOK_OPT{ $key };
     
     foreach my $hook_option_exist ( keys %{ $hook_options_exist } ){
-        if( $valid_hook_options{ $key } < $valid_hook_options{ $hook_option_exist } ){
+        if( $VALID_HOOK_OPT{ $key } < $VALID_HOOK_OPT{ $hook_option_exist } ){
             $@ = "$key option should be appear before $hook_option_exist option";
             return 0;
         }
@@ -103,104 +101,114 @@ sub _SIMO_check_hook_options_order{
     return 1;
 }
 
-# Real accessor.
-sub _SIMO_ac_real{
-    my ( $attr, $self, @vals ) = @_;
+# create accessor.
+sub _SIMO_create_accessor{
+    my ( $pkg, $attr ) = @_;
     
-    # check args
-    my $class = ref $self;
-    croak "$attr must be called from object." unless $class;
+    my $e =
+        qq/sub{\n/ .
+        # arg recieve
+        qq/    my ( \$self, \@vals ) = \@_;\n\n/;
     
-    # get accessor defined class
-    $Simo::ac_define_class->{ $class }{ $attr } ||= _SIMO_get_ac_define_class( $class, $attr );
-    my $ac_define_class = $Simo::ac_define_class->{ $class }{ $attr };
-    
-    # get accessor option
-    my $ac_opt = $Simo::ac_opt{ $ac_define_class }{ $attr };
-    
-    # init by default value
-    $self->{ $attr } = $ac_opt->{ default } unless exists $self->{ $attr };
-    
-    # return value( return old_value in case setter is called )
-    my $ret = $self->{ $attr };
-    
-    # set value if value is defined
-    if( @vals ){
-        # rearrange value;
-        my $val = @vals == 1 ? $vals[0] :
-                  @vals >= 2 && $ac_opt->{ hash_force } ? { @vals } :
-                  @vals >= 2 ? [ @vals ] :
-                  undef;
-    
-        # setter hook function
-        # ( set_hook option is now not recommended. this option will be deleted in future 2019 )
-        if( $ac_opt->{ set_hook } ){
-            eval{ $val = $ac_opt->{ set_hook }->($self,$val) };
-            confess $@ if $@;
-        }
-        
-        # constrain
-        if( my $constrains = $ac_opt->{ constrain } ){
-            $constrains = [ $constrains ] unless ref $constrains eq 'ARRAY';
-            foreach my $constrain ( @{ $constrains } ){
-                croak "constrain of ${ac_define_class}::$attr must be code ref"
-                    unless ref $constrain eq 'CODE';
-                    
-                local $_ = $val;
-                my $ret = $constrain->( $val );
-                croak "Illegal value $val is passed to ${ac_define_class}::$attr"
-                    unless $ret;
-            }
-        }
-        
-        # filter
-        if( my $filters = $ac_opt->{ filter } ){
-            $filters = [ $filters ] unless ref $filters eq 'ARRAY';
-            foreach my $filter ( @{ $filters } ){
-                croak "filter of ${ac_define_class}::$attr must be code ref"
-                    unless ref $filter eq 'CODE';
-                                    
-                local $_ = $val;
-                $val = $filter->( $val );
-            }
-        }
-        
-        # set new value
-        $self->{ $attr } = $val;
-        
-        # trigger
-        if( my $triggers = $ac_opt->{ trigger } ){
-            $triggers = [ $triggers ] unless ref $triggers eq 'ARRAY';
-            foreach my $trigger ( @{ $triggers } ){
-                croak "trigger of ${ac_define_class}::$attr must be code ref"
-                    unless ref $trigger eq 'CODE';
-
-                local $_ = $self;
-                $trigger->( $self );
-            }
-        }
+    if( defined $AC_OPT->{ $pkg }{ $attr }{ default } ){
+        # default value
+        $e .=
+        qq/    if( ! exists( \$self->{ $attr } ) ){\n/ .
+        qq/        \$self->{ $attr } = \$AC_OPT->{ $pkg }{ $attr }{ default };\n/ .
+        qq/    }\n/ .
+        qq/    \n/;
     }
-    else{
-        # getter hook function
-        # ( get_hook option is now not recommended. this option will be deleted in future 2019 )
-        if( $ac_opt->{ get_hook } ){
-            eval{ $ret = $ac_opt->{ get_hook }->($self, $ret) };
-            confess $@ if $@;
-        }
-    }
-    return $ret;
-}
-
-# Get accessor define class
-sub _SIMO_get_ac_define_class{
-    my ( $class, $attr ) = @_;
     
-    my $ac_define_class = ( caller 2 )[ 3 ];
+    # get value
+    $e .=
+        qq/    my \$ret = \$self->{ $attr };\n\n/;
     
-    if( $ac_define_class =~ /^(.+)::/ ){
-        $ac_define_class = $1;
+    $e .=
+        qq/    if( \@vals ){\n/ .
+    
+    # rearrange value
+        qq/        my \$val = \@vals == 1 ? \$vals[0] :\n/;
+    $e .= $AC_OPT->{ $pkg }{ $attr }{ hash_force } ?
+        qq/                   \@vals >= 2 ? { \@vals } :\n/ :
+        qq/                   \@vals >= 2 ? [ \@vals ] :\n/;
+    $e .=
+        qq/                   undef;\n\n/;
+    
+    if( defined $AC_OPT->{ $pkg }{ $attr }{ set_hook } ){
+        # set_hook option
+        $e .=
+        qq/        eval{ \$val = \$AC_OPT->{ $pkg }{ $attr }{ set_hook }->( \$self, \$val ) };\n/ .
+        qq/        Carp::confess( \$@ ) if \$@;\n\n/;
     }
-    return $ac_define_class;
+    
+    if( defined $AC_OPT->{ $pkg }{ $attr }{ constrain } ){
+        # constrain option
+        $e .=
+        qq/        my \$constrains = \$AC_OPT->{ $pkg }{ $attr }{ constrain };\n/ .
+        qq/        \$constrains = [ \$constrains ] unless ref \$constrains eq 'ARRAY';\n/ .
+        qq/        foreach my \$constrain (\@{ \$constrains } ){\n/ .
+        qq/            Carp::croak( "constrain of ${pkg}::$attr must be code ref" )\n/ .
+        qq/                unless ref \$constrain eq 'CODE';\n/ .
+        qq/            \n/ .
+        qq/            local \$_ = \$val;\n/ .
+        qq/            my \$ret = \$constrain->( \$val );\n/ .
+        qq/            Carp::croak( "Illegal value \$val is passed to ${pkg}::$attr" )\n/ .
+        qq/                unless \$ret;\n/ .
+        qq/        }\n\n/;
+    }
+    
+    if( defined $AC_OPT->{ $pkg }{ $attr }{ filter } ){
+        # filter option
+        $e .=
+        qq/        if( my \$filters = \$AC_OPT->{ $pkg }{ $attr }{ filter } ){\n/ .
+        qq/            \$filters = [ \$filters ] unless ref \$filters eq 'ARRAY';\n/ .
+        qq/            foreach my \$filter ( \@{ \$filters } ){\n/ .
+        qq/                Carp::croak( "filter of ${pkg}::$attr must be code ref" )\n/ .
+        qq/                    unless ref \$filter eq 'CODE';\n/ .
+        qq/                \n/ .
+        qq/                local \$_ = \$val;\n/ .
+        qq/                \$val = \$filter->( \$val );\n/ .
+        qq/            }\n/ .
+        qq/        }\n\n/;
+    }
+    
+    # set value
+    $e .=
+        qq/        \$self->{ $attr } = \$val;\n\n/;
+    
+    if( defined $AC_OPT->{ $pkg }{ $attr }{ trigger } ){
+        # trigger option
+        $e .=
+        qq/        if( my \$triggers = \$AC_OPT->{ $pkg }{ $attr }{ trigger } ){\n/ .
+        qq/            \$triggers = [ \$triggers ] unless ref \$triggers eq 'ARRAY';\n/ .
+        qq/            foreach my \$trigger ( \@{ \$triggers } ){\n/ .
+        qq/                Carp::croak( "trigger of ${pkg}::$attr must be code ref" )\n/ .
+        qq/                    unless ref \$trigger eq 'CODE';\n/ .
+        qq/                \n/.
+        qq/                local \$_ = \$self;\n/ .
+        qq/                \$trigger->( \$self );\n/ .
+        qq/            }\n/ .
+        qq/        }\n/;
+    }
+    
+    $e .=
+        qq/    }\n/;
+    
+    if( defined $AC_OPT->{ $pkg }{ $attr }{ get_hook } ){
+        # get_hook option
+        $e .=
+        qq/    else{\n/ .
+        qq/        eval{ \$ret = \$AC_OPT->{ $pkg }{ $attr }{ get_hook }->( \$self, \$ret ) };\n/ .
+        qq/        Carp::confess( \$@ ) if \$@;\n/ .
+        qq/    };\n/;
+    }
+    
+    #return
+    $e .=
+        qq/    return \$ret;\n/ .
+        qq/}\n/;
+    
+    return $e;
 }
 
 # Helper to get acsessor info;
@@ -210,9 +218,9 @@ sub _SIMO_get_ac_info {
     
     my ( $self, @vals ) = @DB::args;
     my $sub = $caller[ 3 ];
-    my ( $ac_define_class, $attr ) = $sub =~ /^(.*)::(.+)$/;
+    my ( $pkg, $attr ) = $sub =~ /^(.*)::(.+)$/;
 
-    return ( $self, $attr, $ac_define_class, @vals );
+    return ( $self, $attr, $pkg, @vals );
 }
 
 =head1 NAME
@@ -221,7 +229,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0402
+Version 0.05_01
 
 =cut
 
