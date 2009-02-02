@@ -367,3 +367,16 @@ package main;
     ok( !defined $t->a, 'undef value set' );
 }
 
+# read_only test
+
+package T2;
+use Simo;
+
+sub x{ ac default => 1, read_only => 1 }
+
+package main;
+{
+    my $t = T2->new;
+    $t->x( 3 );
+    is( $t->x, 1, 'read_only' );
+}

@@ -1,3 +1,6 @@
+Version 0.05_04
+    1. add read_only option
+
 Version 0.05_03
     1. refactoring. constrain, filter, trigger accessor.
 

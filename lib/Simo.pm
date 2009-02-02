@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05_03';
+our $VERSION = '0.05_04';
 
 sub import{
     my $caller_pkg = caller;
@@ -45,7 +45,7 @@ sub new{
 
 # accessor option
 our $AC_OPT = {};
-our %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force );
+our %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force read_only );
 
 # create accessor
 sub ac(@){
@@ -82,10 +82,9 @@ sub _SIMO_process{
 
     # create accessor
     {
-        no strict 'refs';
         no warnings 'redefine';
-        *{ "${pkg}::$attr" } = eval _SIMO_create_accessor( $pkg, $attr );;
-        croak $@ if $@;
+        my $code = _SIMO_create_accessor( $pkg, $attr );
+        eval"sub ${pkg}::${attr} $code";
     }
     return ( $self, $attr, @vals );
 }
@@ -113,7 +112,7 @@ sub _SIMO_create_accessor{
     my ( $pkg, $attr ) = @_;
     
     my $e =
-        qq/sub{\n/ .
+        qq/{\n/ .
         # arg recieve
         qq/    my ( \$self, \@vals ) = \@_;\n\n/;
     
@@ -125,10 +124,14 @@ sub _SIMO_create_accessor{
         qq/    }\n/ .
         qq/    \n/;
     }
-    
+
     # get value
     $e .=
         qq/    my \$ret = \$self->{ $attr };\n\n/;
+    
+    
+    # read only
+    if( $AC_OPT->{ $pkg }{ $attr }{ read_only } ){ goto END_SET_PROCESS }
     
     $e .=
         qq/    if( \@vals ){\n/ .
@@ -136,10 +139,10 @@ sub _SIMO_create_accessor{
     # rearrange value
         qq/        my \$val = \@vals == 1 ? \$vals[0] :\n/;
     $e .= $AC_OPT->{ $pkg }{ $attr }{ hash_force } ?
-        qq/                   \@vals >= 2 ? { \@vals } :\n/ :
-        qq/                   \@vals >= 2 ? [ \@vals ] :\n/;
+        qq/                  \@vals >= 2 ? { \@vals } :\n/ :
+        qq/                  \@vals >= 2 ? [ \@vals ] :\n/;
     $e .=
-        qq/                   undef;\n\n/;
+        qq/                  undef;\n\n/;
     
     if( defined $AC_OPT->{ $pkg }{ $attr }{ set_hook } ){
         # set_hook option
@@ -209,13 +212,13 @@ sub _SIMO_create_accessor{
     $e .=
         qq/    }\n/;
     
+    END_SET_PROCESS:
+    
     if( defined $AC_OPT->{ $pkg }{ $attr }{ get_hook } ){
         # get_hook option
         $e .=
-        qq/    else{\n/ .
-        qq/        eval{ \$ret = \$AC_OPT->{ $pkg }{ $attr }{ get_hook }->( \$self, \$ret ) };\n/ .
-        qq/        Carp::confess( \$@ ) if \$@;\n/ .
-        qq/    };\n/;
+        qq/    eval{ \$ret = \$AC_OPT->{ $pkg }{ $attr }{ get_hook }->( \$self, \$ret ) };\n/ .
+        qq/    Carp::confess( \$@ ) if \$@;\n/;
     }
     
     #return
@@ -244,7 +247,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.05_03
+Version 0.05_04
 
 =cut
 
