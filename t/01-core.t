@@ -304,13 +304,13 @@ package main;
 {
     my $t = MyTest2->new;
     
-    eval{ $t->x( 1 ) };
+    $t->x( 1 );
     is( $t->x, 2, 'filter $_ OK' );
 
-    eval{ $t->y( 1 ) };
+    $t->y( 1 );
     is( $t->y, 2, 'filter $_[0] OK' );
     
-    eval{ $t->z( 1 ) };
+    $t->z( 1 );
     is( $t->z, 4, 'filter multi NG' );
     
     eval{ $t->p(1) };
@@ -340,13 +340,13 @@ package main;
 {
     my $t = MyTest3->new;
     
-    eval{ $t->x( 1 ) };
+    $t->x( 1 );
     is( $t->w, 1, 'trigger $_ OK' );
 
-    eval{ $t->y( 2 ) };
+    $t->y( 2 );
     is( $t->w, 2, 'trigger $_[0] OK' );
     
-    eval{ $t->z( 3 ) };
+    $t->z( 3 );
     is( $t->w, 6 , 'trigger multi NG' );
 
     eval{ $t->p(1) };

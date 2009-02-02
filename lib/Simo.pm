@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05_02';
+our $VERSION = '0.05_03';
 
 sub import{
     my $caller_pkg = caller;
@@ -85,6 +85,7 @@ sub _SIMO_process{
         no strict 'refs';
         no warnings 'redefine';
         *{ "${pkg}::$attr" } = eval _SIMO_create_accessor( $pkg, $attr );;
+        croak $@ if $@;
     }
     return ( $self, $attr, @vals );
 }
@@ -149,13 +150,17 @@ sub _SIMO_create_accessor{
     
     if( defined $AC_OPT->{ $pkg }{ $attr }{ constrain } ){
         # constrain option
+
+        $AC_OPT->{ $pkg }{ $attr }{ constrain } = [ $AC_OPT->{ $pkg }{ $attr }{ constrain } ] 
+            unless ref $AC_OPT->{ $pkg }{ $attr }{ constrain } eq 'ARRAY';
+        
+        foreach my $constrain ( @{ $AC_OPT->{ $pkg }{ $attr }{ constrain } } ){
+            Carp::croak( "constrain of ${pkg}::$attr must be code ref" )
+                unless ref $constrain eq 'CODE';
+        }
+        
         $e .=
-        qq/        my \$constrains = \$AC_OPT->{ $pkg }{ $attr }{ constrain };\n/ .
-        qq/        \$constrains = [ \$constrains ] unless ref \$constrains eq 'ARRAY';\n/ .
-        qq/        foreach my \$constrain (\@{ \$constrains } ){\n/ .
-        qq/            Carp::croak( "constrain of ${pkg}::$attr must be code ref" )\n/ .
-        qq/                unless ref \$constrain eq 'CODE';\n/ .
-        qq/            \n/ .
+        qq/        foreach my \$constrain ( \@{ \$AC_OPT->{ $pkg }{ $attr }{ constrain } } ){\n/ .
         qq/            local \$_ = \$val;\n/ .
         qq/            my \$ret = \$constrain->( \$val );\n/ .
         qq/            Carp::croak( "Illegal value \$val is passed to ${pkg}::$attr" )\n/ .
@@ -165,16 +170,18 @@ sub _SIMO_create_accessor{
     
     if( defined $AC_OPT->{ $pkg }{ $attr }{ filter } ){
         # filter option
+        $AC_OPT->{ $pkg }{ $attr }{ filter } = [ $AC_OPT->{ $pkg }{ $attr }{ filter } ] 
+            unless ref $AC_OPT->{ $pkg }{ $attr }{ filter } eq 'ARRAY';
+        
+        foreach my $filter ( @{ $AC_OPT->{ $pkg }{ $attr }{ filter } } ){
+            Carp::croak( "filter of ${pkg}::$attr must be code ref" )
+                unless ref $filter eq 'CODE';
+        }
+        
         $e .=
-        qq/        if( my \$filters = \$AC_OPT->{ $pkg }{ $attr }{ filter } ){\n/ .
-        qq/            \$filters = [ \$filters ] unless ref \$filters eq 'ARRAY';\n/ .
-        qq/            foreach my \$filter ( \@{ \$filters } ){\n/ .
-        qq/                Carp::croak( "filter of ${pkg}::$attr must be code ref" )\n/ .
-        qq/                    unless ref \$filter eq 'CODE';\n/ .
-        qq/                \n/ .
-        qq/                local \$_ = \$val;\n/ .
-        qq/                \$val = \$filter->( \$val );\n/ .
-        qq/            }\n/ .
+        qq/        foreach my \$filter ( \@{ \$AC_OPT->{ $pkg }{ $attr }{ filter } } ){\n/ .
+        qq/            local \$_ = \$val;\n/ .
+        qq/            \$val = \$filter->( \$val );\n/ .
         qq/        }\n\n/;
     }
     
@@ -183,17 +190,19 @@ sub _SIMO_create_accessor{
         qq/        \$self->{ $attr } = \$val;\n\n/;
     
     if( defined $AC_OPT->{ $pkg }{ $attr }{ trigger } ){
+        $AC_OPT->{ $pkg }{ $attr }{ trigger } = [ $AC_OPT->{ $pkg }{ $attr }{ trigger } ]
+            unless ref $AC_OPT->{ $pkg }{ $attr }{ trigger } eq 'ARRAY';
+        
+        foreach my $trigger ( @{ $AC_OPT->{ $pkg }{ $attr }{ trigger } } ){
+            Carp::croak( "trigger of ${pkg}::$attr must be code ref" )
+                unless ref $trigger eq 'CODE';
+        }
+        
         # trigger option
         $e .=
-        qq/        if( my \$triggers = \$AC_OPT->{ $pkg }{ $attr }{ trigger } ){\n/ .
-        qq/            \$triggers = [ \$triggers ] unless ref \$triggers eq 'ARRAY';\n/ .
-        qq/            foreach my \$trigger ( \@{ \$triggers } ){\n/ .
-        qq/                Carp::croak( "trigger of ${pkg}::$attr must be code ref" )\n/ .
-        qq/                    unless ref \$trigger eq 'CODE';\n/ .
-        qq/                \n/.
-        qq/                local \$_ = \$self;\n/ .
-        qq/                \$trigger->( \$self );\n/ .
-        qq/            }\n/ .
+        qq/        foreach my \$trigger ( \@{ \$AC_OPT->{ $pkg }{ $attr }{ trigger } } ){\n/ .
+        qq/            local \$_ = \$self;\n/ .
+        qq/            \$trigger->( \$self );\n/ .
         qq/        }\n/;
     }
     
@@ -235,7 +244,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.05_02
+Version 0.05_03
 
 =cut
 

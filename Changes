@@ -1,5 +1,8 @@
+Version 0.05_03
+    1. refactoring. constrain, filter, trigger accessor.
+
 Version 0.05_02
-    1. refarctoring. ac funciton is simplified.
+    1. refactoring. ac funciton is simplified.
 
 Version 0.05_01
     1. I write accessor by using meta programing.
