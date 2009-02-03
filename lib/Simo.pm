@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05_04';
+our $VERSION = '0.05_05';
 
 sub import{
     my $caller_pkg = caller;
@@ -111,6 +111,18 @@ sub _SIMO_check_hook_options_order{
 sub _SIMO_create_accessor{
     my ( $pkg, $attr ) = @_;
     
+    my $read_only = $AC_OPT->{ $pkg }{ $attr }{ read_only };
+    
+    if( $read_only ){
+        my $attr_org = $attr;
+        if( $attr =~ s/get_// ){
+            $AC_OPT->{ $pkg }{ $attr } = delete $AC_OPT->{ $pkg }{ $attr_org }
+        }
+        else{
+            Carp::carp( "Read only method should be contain 'get_' in accessor name" )
+        }
+    }
+    
     my $e =
         qq/{\n/ .
         # arg recieve
@@ -131,7 +143,7 @@ sub _SIMO_create_accessor{
     
     
     # read only
-    if( $AC_OPT->{ $pkg }{ $attr }{ read_only } ){ goto END_SET_PROCESS }
+    if( $read_only ){ goto END_SET_PROCESS }
     
     $e .=
         qq/    if( \@vals ){\n/ .
@@ -247,7 +259,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.05_04
+Version 0.05_05
 
 =cut
 
@@ -302,6 +314,10 @@ writing new and accessors repeatedly.
         my $date = substr( $self->issue_datetime, 0, 10 );
         $self->issue_date( $date );
     }
+    
+    # read only accessor
+    sub get_size{ ac default => 5, read_only => 1 }
+    
     1;
 =cut
 
@@ -329,6 +345,9 @@ writing new and accessors repeatedly.
     # trigger( issue_date is updated '2009-01-01' )
     $book->issue_datetime( '2009-01-01 12:33:45' );
     my $issue_date = $book->issue_date;
+    
+    # read only accessor
+    $book->get_size;
 
 =cut
 
@@ -456,6 +475,14 @@ and you can define more than one trigger.
     sub issue_datetime{ ac trigger => [ \&update_issue_date, \&update_issue_time ] }
 
 =cut
+
+=head3 read_only option
+
+Read only accessor is defined
+
+    sub get_size{ ac default => 5, read_only => 1 }
+
+Accessor name should be contain 'get_'. If not, warning is happen.
 
 =head3 hash_force option
 

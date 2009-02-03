@@ -1,3 +1,6 @@
+Version 0.05_05
+    1. read_only method should be 'get_'. If not, warnings is happen.
+
 Version 0.05_04
     1. add read_only option
 
