@@ -372,22 +372,13 @@ package main;
 package T2;
 use Simo;
 
-sub get_x{ ac default => 1, read_only => 1 }
-sub y{ ac default => 2, read_only => 1 }
+sub x{ ac default => 1, read_only => 1 }
 
 package main;
 {
     my $t = T2->new;
-    $t->get_x( 3 );
-    is( $t->get_x, 1, 'read_only' );
-    is( $t->{ x }, 1, 'read_only internal' );
+    is( $t->x, 1, 'read_only' );
     
-    my $warn;
-    $SIG{__WARN__} = sub{
-        $warn = shift;
-    };
-    
-    is( $t->y, 2, 'read_only warning get value' );
-    like( $warn, qr/Read only method should be contain 'get_' in accessor name/, 'read_only warning' );
-    
+    eval{ $t->x( 3 ) };
+    like( $@, qr/T2::x is read only/, 'read_only die' );
 }

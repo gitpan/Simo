@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05_06';
+our $VERSION = '0.05_07';
 
 sub import{
     my $caller_pkg = caller;
@@ -42,6 +42,15 @@ sub new{
     }
     return $self;
 }
+
+#sub get_attrs{
+#    my ( $self, @attrs ) = @_;
+#    @attr = @{ $_[0] } if ref $_[0] eq 'ARRAY';
+#    my @vals = map{ $self->$_  } @attr;
+#    wantarray ? @vals : \@vals;
+#}
+
+
 
 # accessor option
 our %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force read_only );
@@ -108,13 +117,6 @@ sub _SIMO_check_hook_options_order{
 sub _SIMO_create_accessor{
     my ( $pkg, $attr, $ac_opt ) = @_;
     
-    my $read_only = $ac_opt->{ read_only };
-    
-    if( $read_only ){
-        Carp::carp( "Read only method should be contain 'get_' in accessor name" )
-            unless $attr =~ s/get_//;
-    }
-    
     my $e =
         qq/{\n/ .
         # arg recieve
@@ -128,15 +130,18 @@ sub _SIMO_create_accessor{
         qq/    }\n/ .
         qq/    \n/;
     }
-
+    
     # get value
     $e .=
         qq/    my \$ret = \$self->{ $attr };\n\n/;
-    
-    
-    # read only
-    if( $read_only ){ goto END_SET_PROCESS }
-    
+
+    if ( $ac_opt->{ read_only } ){
+        $e .=
+        qq/    Carp::croak( "${pkg}::$attr is read only" ) if \@vals;\n\n/;
+        
+        goto END_OF_VALUE_SETTING;
+    }
+        
     $e .=
         qq/    if( \@vals ){\n/ .
     
@@ -216,7 +221,7 @@ sub _SIMO_create_accessor{
     $e .=
         qq/    }\n/;
     
-    END_SET_PROCESS:
+    END_OF_VALUE_SETTING:
     
     if( defined $ac_opt->{ get_hook } ){
         # get_hook option
@@ -251,7 +256,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.05_06
+Version 0.05_07
 
 =cut
 

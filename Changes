@@ -1,3 +1,9 @@
+Version 0.05_07
+    1. craok read_only acseccor when value is set. 
+
+Version 0.05_06
+    1. refactoring. package variable $ac_opt change rexical variable.
+
 Version 0.05_05
     1. read_only method should be 'get_'. If not, warnings is happen.
 
