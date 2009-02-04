@@ -69,7 +69,7 @@ package main;
         my $book = Book->new( 'a' );
     };
     like( 
-        $@, qr/key-value pairs must be passed to new method/,
+        $@, qr/key-value pairs must be passed to new/,
         'not pass key value pair'
     );
 }
@@ -78,7 +78,7 @@ package main;
     eval{
         my $book = Book->new( noexist => 1 );
     };
-    like( $@, qr/Invalid key 'noexist' is passed to Book::new/, 'invalid key to new method' );
+    like( $@, qr/Invalid key 'noexist' is passed to new/, 'invalid key to new' );
 }
 
 # set and get array and hash

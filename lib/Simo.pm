@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05_07';
+our $VERSION = '0.05_08';
 
 sub import{
     my $caller_pkg = caller;
@@ -24,36 +24,68 @@ sub import{
 
 sub new{
     my ( $proto, @args ) = @_;
-    
-    # check args
-    @args = %{ $args[0] } if ref $args[0] eq 'HASH';
-    croak 'key-value pairs must be passed to new method' if @args % 2;
-    
+
     # bless
     my $self = {};
     my $pkg = ref $proto || $proto;
     bless $self, $pkg;
     
+    # check args
+    @args = %{ $args[0] } if ref $args[0] eq 'HASH';
+    croak 'key-value pairs must be passed to new' if @args % 2;
+    
     # set args
     while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
-        croak "Invalid key '$attr' is passed to ${pkg}::new" unless $self->can( $attr );
+        croak "Invalid key '$attr' is passed to new" unless $self->can( $attr );
         no strict 'refs';
         $self->$attr( $val );
     }
     return $self;
 }
 
-#sub get_attrs{
-#    my ( $self, @attrs ) = @_;
-#    @attr = @{ $_[0] } if ref $_[0] eq 'ARRAY';
-#    my @vals = map{ $self->$_  } @attr;
-#    wantarray ? @vals : \@vals;
-#}
+# get value specify attr names
+sub get_attrs{
+    my ( $self, @attrs ) = @_;
+    
+    @attrs = @{ $attrs[0] } if ref $attrs[0] eq 'ARRAY';
+    
+    my @vals;
+    foreach my $attr ( @attrs ){
+        croak "Invalid key '$attr' is passed to get_attrs" unless $self->can( $attr );
+        my $val = $self->$attr;
+        push @vals, $val;
+    }
+    wantarray ? @vals : $vals[0];
+}
 
+# get value as hash specify attr names
+sub get_attrs_as_hash{
+    my ( $self, @attrs ) = @_;
+    my @vals = $self->get_attrs( @attrs );
+    
+    my %attrs;
+    @attrs{ @attrs } = @vals;
+    
+    wantarray ? %attrs : \%attrs;
+}
 
+# set values
+sub set_attrs{
+    my ( $self, @args ) = @_;
 
-# accessor option
-our %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force read_only );
+    # check args
+    @args = %{ $args[0] } if ref $args[0] eq 'HASH';
+    croak 'key-value pairs must be passed to set_attrs' if @args % 2;
+    
+    # set args
+    while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
+        croak "Invalid key '$attr' is passed to set_attrs" unless $self->can( $attr );
+        no strict 'refs';
+        $self->$attr( $val );
+    }
+    return $self;
+}
+
 
 # create accessor
 sub ac(@){
@@ -63,6 +95,9 @@ sub ac(@){
     # call accessor
     $self->$attr( @vals );
 }
+
+# accessor option
+my %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force read_only );
 
 # Simo process. register accessor option and create accessor.
 sub _SIMO_process{
@@ -96,7 +131,7 @@ sub _SIMO_process{
 }
 
 # check hook option order ( constrain, filter, and trigger )
-our %VALID_HOOK_OPT = ( constrain => 1, filter => 2, trigger => 3 );
+my %VALID_HOOK_OPT = ( constrain => 1, filter => 2, trigger => 3 );
 
 sub _SIMO_check_hook_options_order{
     my ( $key, $hook_options_exist ) = @_;
@@ -256,7 +291,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.05_07
+Version 0.05_08
 
 =cut
 
@@ -316,6 +351,7 @@ writing new and accessors repeatedly.
     sub get_size{ ac default => 5, read_only => 1 }
     
     1;
+    
 =cut
 
 =head2 Using class and accessors
@@ -548,14 +584,29 @@ You can get old value when you use accessor as setter.
 
 ac is exported. This is used by define accessor. 
 
-=cut
-
 =head2 new
 
 orveridable new method.
 
-=cut
+=head2 get_attrs
 
+    my( $title, $author ) = $book->get_attrs( 'title', 'author' );
+
+=head2  get_attrs_as_hash
+
+    my %hash = $book->get_attrs( 'title', 'author' );
+
+or
+
+    my $hash_ref = $book->get_attrs( 'title', 'author' );
+
+=head2 set_attrs
+
+    $book->set_attrs( title => 'Simple OO', author => 'kimoto' );
+
+return value is $self. so method chaine is available
+
+    $book->set_attrs( title => 'Simple OO', author => 'kimoto' )->some_method;
 
 =head1 MORE TECHNIQUES
 

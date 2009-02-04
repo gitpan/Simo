@@ -1,3 +1,6 @@
+Version 0.05_08
+    1. add method. get_attrs, get_attrs_as_hash, set_attrs
+
 Version 0.05_07
     1. craok read_only acseccor when value is set. 
 
