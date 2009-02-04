@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05_05';
+our $VERSION = '0.05_06';
 
 sub import{
     my $caller_pkg = caller;
@@ -44,7 +44,6 @@ sub new{
 }
 
 # accessor option
-our $AC_OPT = {};
 our %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force read_only );
 
 # create accessor
@@ -77,13 +76,11 @@ sub _SIMO_process{
         $ac_opt->{ $key } = $val;
     }
     
-    # register accessor option
-    $AC_OPT->{ $pkg }{ $attr } = $ac_opt;
 
     # create accessor
     {
-        no warnings 'redefine';
-        my $code = _SIMO_create_accessor( $pkg, $attr );
+        my $code = _SIMO_create_accessor( $pkg, $attr, $ac_opt );
+        no warnings qw( redefine closure );
         eval"sub ${pkg}::${attr} $code";
     }
     return ( $self, $attr, @vals );
@@ -109,18 +106,13 @@ sub _SIMO_check_hook_options_order{
 
 # create accessor.
 sub _SIMO_create_accessor{
-    my ( $pkg, $attr ) = @_;
+    my ( $pkg, $attr, $ac_opt ) = @_;
     
-    my $read_only = $AC_OPT->{ $pkg }{ $attr }{ read_only };
+    my $read_only = $ac_opt->{ read_only };
     
     if( $read_only ){
-        my $attr_org = $attr;
-        if( $attr =~ s/get_// ){
-            $AC_OPT->{ $pkg }{ $attr } = delete $AC_OPT->{ $pkg }{ $attr_org }
-        }
-        else{
-            Carp::carp( "Read only method should be contain 'get_' in accessor name" )
-        }
+        Carp::carp( "Read only method should be contain 'get_' in accessor name" )
+            unless $attr =~ s/get_//;
     }
     
     my $e =
@@ -128,11 +120,11 @@ sub _SIMO_create_accessor{
         # arg recieve
         qq/    my ( \$self, \@vals ) = \@_;\n\n/;
     
-    if( defined $AC_OPT->{ $pkg }{ $attr }{ default } ){
+    if( defined $ac_opt->{ default } ){
         # default value
         $e .=
         qq/    if( ! exists( \$self->{ $attr } ) ){\n/ .
-        qq/        \$self->{ $attr } = \$AC_OPT->{ $pkg }{ $attr }{ default };\n/ .
+        qq/        \$self->{ $attr } = \$ac_opt->{ default };\n/ .
         qq/    }\n/ .
         qq/    \n/;
     }
@@ -150,32 +142,32 @@ sub _SIMO_create_accessor{
     
     # rearrange value
         qq/        my \$val = \@vals == 1 ? \$vals[0] :\n/;
-    $e .= $AC_OPT->{ $pkg }{ $attr }{ hash_force } ?
+    $e .= $ac_opt->{ hash_force } ?
         qq/                  \@vals >= 2 ? { \@vals } :\n/ :
         qq/                  \@vals >= 2 ? [ \@vals ] :\n/;
     $e .=
         qq/                  undef;\n\n/;
     
-    if( defined $AC_OPT->{ $pkg }{ $attr }{ set_hook } ){
+    if( defined $ac_opt->{ set_hook } ){
         # set_hook option
         $e .=
-        qq/        eval{ \$val = \$AC_OPT->{ $pkg }{ $attr }{ set_hook }->( \$self, \$val ) };\n/ .
+        qq/        eval{ \$val = \$ac_opt->{ set_hook }->( \$self, \$val ) };\n/ .
         qq/        Carp::confess( \$@ ) if \$@;\n\n/;
     }
     
-    if( defined $AC_OPT->{ $pkg }{ $attr }{ constrain } ){
+    if( defined $ac_opt->{ constrain } ){
         # constrain option
 
-        $AC_OPT->{ $pkg }{ $attr }{ constrain } = [ $AC_OPT->{ $pkg }{ $attr }{ constrain } ] 
-            unless ref $AC_OPT->{ $pkg }{ $attr }{ constrain } eq 'ARRAY';
+        $ac_opt->{ constrain } = [ $ac_opt->{ constrain } ] 
+            unless ref $ac_opt->{ constrain } eq 'ARRAY';
         
-        foreach my $constrain ( @{ $AC_OPT->{ $pkg }{ $attr }{ constrain } } ){
+        foreach my $constrain ( @{ $ac_opt->{ constrain } } ){
             Carp::croak( "constrain of ${pkg}::$attr must be code ref" )
                 unless ref $constrain eq 'CODE';
         }
         
         $e .=
-        qq/        foreach my \$constrain ( \@{ \$AC_OPT->{ $pkg }{ $attr }{ constrain } } ){\n/ .
+        qq/        foreach my \$constrain ( \@{ \$ac_opt->{ constrain } } ){\n/ .
         qq/            local \$_ = \$val;\n/ .
         qq/            my \$ret = \$constrain->( \$val );\n/ .
         qq/            Carp::croak( "Illegal value \$val is passed to ${pkg}::$attr" )\n/ .
@@ -183,18 +175,18 @@ sub _SIMO_create_accessor{
         qq/        }\n\n/;
     }
     
-    if( defined $AC_OPT->{ $pkg }{ $attr }{ filter } ){
+    if( defined $ac_opt->{ filter } ){
         # filter option
-        $AC_OPT->{ $pkg }{ $attr }{ filter } = [ $AC_OPT->{ $pkg }{ $attr }{ filter } ] 
-            unless ref $AC_OPT->{ $pkg }{ $attr }{ filter } eq 'ARRAY';
+        $ac_opt->{ filter } = [ $ac_opt->{ filter } ] 
+            unless ref $ac_opt->{ filter } eq 'ARRAY';
         
-        foreach my $filter ( @{ $AC_OPT->{ $pkg }{ $attr }{ filter } } ){
+        foreach my $filter ( @{ $ac_opt->{ filter } } ){
             Carp::croak( "filter of ${pkg}::$attr must be code ref" )
                 unless ref $filter eq 'CODE';
         }
         
         $e .=
-        qq/        foreach my \$filter ( \@{ \$AC_OPT->{ $pkg }{ $attr }{ filter } } ){\n/ .
+        qq/        foreach my \$filter ( \@{ \$ac_opt->{ filter } } ){\n/ .
         qq/            local \$_ = \$val;\n/ .
         qq/            \$val = \$filter->( \$val );\n/ .
         qq/        }\n\n/;
@@ -204,18 +196,18 @@ sub _SIMO_create_accessor{
     $e .=
         qq/        \$self->{ $attr } = \$val;\n\n/;
     
-    if( defined $AC_OPT->{ $pkg }{ $attr }{ trigger } ){
-        $AC_OPT->{ $pkg }{ $attr }{ trigger } = [ $AC_OPT->{ $pkg }{ $attr }{ trigger } ]
-            unless ref $AC_OPT->{ $pkg }{ $attr }{ trigger } eq 'ARRAY';
+    if( defined $ac_opt->{ trigger } ){
+        $ac_opt->{ trigger } = [ $ac_opt->{ trigger } ]
+            unless ref $ac_opt->{ trigger } eq 'ARRAY';
         
-        foreach my $trigger ( @{ $AC_OPT->{ $pkg }{ $attr }{ trigger } } ){
+        foreach my $trigger ( @{ $ac_opt->{ trigger } } ){
             Carp::croak( "trigger of ${pkg}::$attr must be code ref" )
                 unless ref $trigger eq 'CODE';
         }
         
         # trigger option
         $e .=
-        qq/        foreach my \$trigger ( \@{ \$AC_OPT->{ $pkg }{ $attr }{ trigger } } ){\n/ .
+        qq/        foreach my \$trigger ( \@{ \$ac_opt->{ trigger } } ){\n/ .
         qq/            local \$_ = \$self;\n/ .
         qq/            \$trigger->( \$self );\n/ .
         qq/        }\n/;
@@ -226,10 +218,10 @@ sub _SIMO_create_accessor{
     
     END_SET_PROCESS:
     
-    if( defined $AC_OPT->{ $pkg }{ $attr }{ get_hook } ){
+    if( defined $ac_opt->{ get_hook } ){
         # get_hook option
         $e .=
-        qq/    eval{ \$ret = \$AC_OPT->{ $pkg }{ $attr }{ get_hook }->( \$self, \$ret ) };\n/ .
+        qq/    eval{ \$ret = \$ac_opt->{ get_hook }->( \$self, \$ret ) };\n/ .
         qq/    Carp::confess( \$@ ) if \$@;\n/;
     }
     
@@ -259,7 +251,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.05_05
+Version 0.05_06
 
 =cut
 
@@ -482,7 +474,7 @@ Read only accessor is defined
 
     sub get_size{ ac default => 5, read_only => 1 }
 
-Accessor name should be contain 'get_'. If not, warning is happen.
+Accessor name should be contain 'get_'.If not, warnings is happen.
 
 =head3 hash_force option
 
