@@ -1,3 +1,6 @@
+Version 0.0601
+    1. new version release.
+
 Version 0.05_08
     1. add method. get_attrs, get_attrs_as_hash, set_attrs
 

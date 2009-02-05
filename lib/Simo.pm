@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.05_08';
+our $VERSION = '0.0601';
 
 sub import{
     my $caller_pkg = caller;
@@ -107,7 +107,9 @@ sub _SIMO_process{
     # check and rearrange accessor option;
     my $ac_opt = {};
     
-    $ac_opt->{ default } = shift if @_ % 2;
+    $ac_opt->{ default } = shift if @_ % 2; 
+        # ( Unnamed default option is is now not recommended. this will be deleted in future 2019/01/01 )
+    
     my $hook_options_exist = {};
     
     while( my( $key, $val ) = splice( @_, 0, 2 ) ){
@@ -190,6 +192,7 @@ sub _SIMO_create_accessor{
     
     if( defined $ac_opt->{ set_hook } ){
         # set_hook option
+        #( set_hook option is is now not recommended. this option will be deleted in future 2019/01/01 )
         $e .=
         qq/        eval{ \$val = \$ac_opt->{ set_hook }->( \$self, \$val ) };\n/ .
         qq/        Carp::confess( \$@ ) if \$@;\n\n/;
@@ -260,6 +263,7 @@ sub _SIMO_create_accessor{
     
     if( defined $ac_opt->{ get_hook } ){
         # get_hook option
+        # ( get_hook option is is now not recommended. this option will be deleted in future 2019/01/01 )
         $e .=
         qq/    eval{ \$ret = \$ac_opt->{ get_hook }->( \$self, \$ret ) };\n/ .
         qq/    Carp::confess( \$@ ) if \$@;\n/;
@@ -291,7 +295,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.05_08
+Version 0.0601
 
 =cut
 
@@ -535,18 +539,6 @@ If you use hash_force option, you convert list to hash ref
 
 =cut
 
-=head3 set_hook option
-
-set_hook option is now not recommended. this option will be deleted in future 2019/01/01
-
-=cut
-
-=head3 get_hook option
-
-get_hook option is now not recommended. this option will be deleted in future 2019/01/01
-
-=cut
-
 =head2 Order of constrain, filter and trigger
 
 =over 4
@@ -583,6 +575,8 @@ You can get old value when you use accessor as setter.
 =head2 ac
 
 ac is exported. This is used by define accessor. 
+
+=head1 METHOD
 
 =head2 new
 
