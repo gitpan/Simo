@@ -3,23 +3,67 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0601';
+our $VERSION = '0.07_01';
 
+my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
+    my ( $self, @opts ) = @_;
+    @opts = %{ $opts[0] } if ref $opts[0] eq 'HASH';
+    
+    # import option
+    my $import_opt = {};
+    while( my ( $opt, $val ) = splice( @opts, 0, 2 ) ){
+        croak "Invalid import option '$opt'" unless $VALID_IMPORT_OPT{ $opt };
+        $import_opt->{ $opt } = $val;
+    }
+    
     my $caller_pkg = caller;
     
+    # export function
     {
         # export function
         no strict 'refs';
         *{ "${caller_pkg}::ac" } = \&Simo::ac;
-        
-        # caller inherit Simo
-        push @{ "${caller_pkg}::ISA" }, __PACKAGE__;
+    }
+    
+    # inherit base class
+    my @inherit_classes = _SIMO_get_inherit_classes( $import_opt );
+    if( @inherit_classes ){
+        eval "package $caller_pkg;" .
+             "use base \@inherit_classes;";
+        if( $@ ){ $@ =~ s/\s+at .+$//; croak $@ }
+    }
+    
+    # inherit Simo
+    {
+        no strict 'refs';
+        push @{ "${caller_pkg}::ISA" }, 'Simo';
     }
 
     # auto strict and warnings
     strict->import;
     warnings->import;
+}
+
+sub _SIMO_get_inherit_classes{
+    my $import_opt = shift;
+    my @base_classes;
+    
+    my @inherit_classes;
+    if( my $base = $import_opt->{ base } ){
+        push @inherit_classes,
+            ref $base eq 'ARRAY' ? @{ $base } : $base;
+    }
+    
+    if( my $mixin = $import_opt->{ mixin } ){
+        push @inherit_classes,
+            ref $mixin eq 'ARRAY' ? @{ $mixin } : $mixin;
+    }
+    
+    foreach my $inherit_class( @inherit_classes ){
+        croak "Invalid class name '$inherit_class'" unless $inherit_class =~ /^(\w+::)*\w+$/;
+    }
+    return @inherit_classes;
 }
 
 sub new{
@@ -84,6 +128,46 @@ sub set_attrs{
         $self->$attr( $val );
     }
     return $self;
+}
+
+# run methods
+sub run_methods{
+    my ( $self, @method_or_args_list ) = @_;
+    
+    my $method_infos = $self->_SIMO_parse_run_methods_args( @method_or_args_list );
+    while( my $method_info = shift @{ $method_infos } ){
+        my ( $method, $args ) = @{ $method_info }{ qw( name args ) };
+        
+        if( @{ $method_infos } ){
+            $self->$method( @{ $args } );
+        }
+        else{
+            return wantarray ? ( $self->$method( @{ $args } ) ) :
+                                 $self->$method( @{ $args } );
+        }
+    }
+}
+
+sub _SIMO_parse_run_methods_args{
+    my ( $self, @method_or_args_list ) = @_;
+    
+    my $method_infos = [];
+    while( my $method_or_args = shift @method_or_args_list ){
+        croak "$method_or_args is bad. Method name must be string and args must be array ref"
+            if ref $method_or_args;
+        
+        my $method = $method_or_args;
+        croak "$method is not exist" unless $self->can( $method );
+        
+        my $method_info = {};
+        $method_info->{ name } = $method;
+        $method_info->{ args } = ref $method_or_args_list[0] eq 'ARRAY' ?
+                                 shift @method_or_args_list :
+                                 [];
+        
+        push @{ $method_infos }, $method_info;
+    }
+    return $method_infos;
 }
 
 
@@ -295,7 +379,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0601
+Version 0.07_01
 
 =cut
 
@@ -601,6 +685,20 @@ or
 return value is $self. so method chaine is available
 
     $book->set_attrs( title => 'Simple OO', author => 'kimoto' )->some_method;
+    
+=head2 run_methods
+
+this excute some methods continuously.
+
+    my $result = $book_list->run_methods(
+        'select' => [ type => 'Commic' ],
+        'sort' => [ 'desc' },
+        'get_result'
+    );
+    
+args must be array ref. You can omit args.
+
+You can get last method return value in scalar context or list context.
 
 =head1 MORE TECHNIQUES
 

@@ -1,3 +1,7 @@
+Version 0.07_01
+    1. add import opiton 'base' and 'mixin'.
+    2. add run_methods method.
+    
 Version 0.0601
     1. new version release.
 
