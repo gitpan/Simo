@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.07_01';
+our $VERSION = '0.07_02';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -296,9 +296,12 @@ sub _SIMO_create_accessor{
         $e .=
         qq/        foreach my \$constrain ( \@{ \$ac_opt->{ constrain } } ){\n/ .
         qq/            local \$_ = \$val;\n/ .
+        qq/            \$@ = undef;\n/ .
         qq/            my \$ret = \$constrain->( \$val );\n/ .
-        qq/            Carp::croak( "Illegal value \$val is passed to ${pkg}::$attr" )\n/ .
-        qq/                unless \$ret;\n/ .
+        qq/            if( !\$ret ){\n/ .
+        qq/                \$@ ||= 'Illegal value is passed.';\n/ .
+        qq/                Carp::croak( "\$@ ( constrain of ${pkg}::$attr )" )\n/ .
+        qq/            }\n/ .
         qq/        }\n\n/;
     }
     
@@ -379,7 +382,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.07_01
+Version 0.07_02
 
 =cut
 
