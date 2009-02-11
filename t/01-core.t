@@ -213,7 +213,7 @@ sub p{ ac constrain => 'a' }
 
 sub q{ ac constrain => sub{ 1 } };
 sub r{ ac constrain => sub{ 0 } };
-sub s{ ac constrain => sub{ $@ = 'err'; 0 } };
+sub s{ ac constrain => sub{ $@ = "err"; return 0 }, };
 
 package main;
 {
@@ -282,10 +282,10 @@ package main;
     }
     
     eval{ $t->r( 1 ) };
-    like( $@, qr/Illegal value is passed\. \( constrain of MyTest1::r \)/ , 'constrain return faluse value. $@ is not set' );
+    like( $@, qr/MyTest1::r must be valid value\./ , 'constrain return faluse value. $@ is not set' );
     
-    eval{ $t->s( 0 ) };
-    like( $@, qr/err \( constrain of MyTest1::s \)/ , 'constrain return faluse value. $@ is set' );
+    eval{ $t->s( 'a' ) };
+    like( $@, qr/MyTest1::s err/ , 'constrain return faluse value. $@ is set' );
 }
 
 

@@ -1,3 +1,9 @@
+Version 0.07_03
+    1. fix constrain error message bag.
+
+Version 0.07_02
+    1. constrain error message is easy to understand.
+    
 Version 0.07_01
     1. add import opiton 'base' and 'mixin'.
     2. add run_methods method.
