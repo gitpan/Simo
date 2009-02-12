@@ -34,7 +34,9 @@ package main;
      ok( $t->can( 'b2' ), 'base option passed as array ref 2' );   
 
      ok( $t->can( 'm1' ), 'mixin option passed as array ref 1' );   
-     ok( $t->can( 'm2' ), 'mixin option passed as array ref 2' );   
+     ok( $t->can( 'm2' ), 'mixin option passed as array ref 2' );
+     
+     is_deeply( [ @T2::ISA ], [ qw( B1 B2::A Simo M1 M2 ) ], 'inherit order' );   
 }
 
 package T3;

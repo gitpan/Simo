@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.07_03';
+our $VERSION = '0.07_04';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -26,44 +26,40 @@ sub import{
         *{ "${caller_pkg}::ac" } = \&Simo::ac;
     }
     
-    # inherit base class
-    my @inherit_classes = _SIMO_get_inherit_classes( $import_opt );
-    if( @inherit_classes ){
-        eval "package $caller_pkg;" .
-             "use base \@inherit_classes;";
-        if( $@ ){ $@ =~ s/\s+at .+$//; croak $@ }
-    }
+    # caller package inherit these classes
+    # 1.base class,  2.Simo,  3.mixin class
     
-    # inherit Simo
-    {
-        no strict 'refs';
-        push @{ "${caller_pkg}::ISA" }, 'Simo';
-    }
+    _SIMO_inherit_classes( $caller_pkg, $import_opt->{ base }, $import_opt->{ mixin } );
 
     # auto strict and warnings
     strict->import;
     warnings->import;
 }
 
-sub _SIMO_get_inherit_classes{
-    my $import_opt = shift;
-    my @base_classes;
+# callar package inherit some classes
+sub _SIMO_inherit_classes{
+    my ( $pkg, $base, $mixin ) = @_;
     
-    my @inherit_classes;
-    if( my $base = $import_opt->{ base } ){
-        push @inherit_classes,
+    my @classes;
+    if( $base ){
+        push @classes,
             ref $base eq 'ARRAY' ? @{ $base } : $base;
     }
     
-    if( my $mixin = $import_opt->{ mixin } ){
-        push @inherit_classes,
+    push @classes, 'Simo';
+    
+    if( $mixin ){
+        push @classes,
             ref $mixin eq 'ARRAY' ? @{ $mixin } : $mixin;
     }
     
-    foreach my $inherit_class( @inherit_classes ){
-        croak "Invalid class name '$inherit_class'" unless $inherit_class =~ /^(\w+::)*\w+$/;
+    foreach my $class( @classes ){
+        croak "Invalid class name '$class'" unless $class =~ /^(\w+::)*\w+$/;
     }
-    return @inherit_classes;
+    
+    eval "package $pkg;" .
+         "use base \@classes;";
+    if( $@ ){ $@ =~ s/\s+at .+$//; croak $@ }
 }
 
 sub new{
@@ -382,7 +378,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.07_03
+Version 0.07_04
 
 =cut
 
