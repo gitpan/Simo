@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.07_04';
+our $VERSION = '0.07_05';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -77,11 +77,20 @@ sub new{
     # set args
     while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
         croak "Invalid key '$attr' is passed to new" unless $self->can( $attr );
+        
         no strict 'refs';
         $self->$attr( $val );
     }
+    
+    foreach my $required_attrs ( $self->REQUIRED_ATTRS ){
+        croak "Attr '$required_attrs' is required." 
+            unless exists $self->{ $required_attrs };
+    }
     return $self;
 }
+
+# required keys when object is created by new.
+sub REQUIRED_ATTRS{ () }
 
 # get value specify attr names
 sub get_attrs{
@@ -378,7 +387,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.07_04
+Version 0.07_05
 
 =cut
 
@@ -698,6 +707,16 @@ this excute some methods continuously.
 args must be array ref. You can omit args.
 
 You can get last method return value in scalar context or list context.
+
+=head2 REQUIRED_ATTRS
+
+this method is expected to override.
+
+You can set required attrs when object is create by new.
+
+    sub REQUIRED_ATTRS{ qw( title author price ) }
+
+Please be careful not to write wrong spell.
 
 =head1 MORE TECHNIQUES
 

@@ -1,3 +1,6 @@
+Version 0.07_05
+    1. add REQUIRED_ATTRS method. 
+
 Version 0.07_04
     1. mixin inherit order move last.
 
