@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0801';
+our $VERSION = '0.0802';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -387,7 +387,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0801
+Version 0.0802
 
 =cut
 
@@ -666,47 +666,26 @@ You can get old value when you use accessor as setter.
 
 =head2 ac
 
-ac is exported. This is used by define accessor. 
+ac is exported. This is used to define accessor.
 
-=head1 METHOD
+    package Book;
+    use Simo;
+    
+    sub title{ ac }
+    sub author{ ac }
+
+=head1 METHODS
 
 =head2 new
 
-orveridable new method.
+Orveridable new method. You can create object.
 
-=head2 get_attrs
-
-    my( $title, $author ) = $book->get_attrs( 'title', 'author' );
-
-=head2  get_attrs_as_hash
-
-    my %hash = $book->get_attrs( 'title', 'author' );
-
+    use Book;
+    my $book = Book->new( title => 'a', author => 'b' );
+    
 or
 
-    my $hash_ref = $book->get_attrs( 'title', 'author' );
-
-=head2 set_attrs
-
-    $book->set_attrs( title => 'Simple OO', author => 'kimoto' );
-
-return value is $self. so method chaine is available
-
-    $book->set_attrs( title => 'Simple OO', author => 'kimoto' )->some_method;
-    
-=head2 run_methods
-
-this excute some methods continuously.
-
-    my $result = $book_list->run_methods(
-        'select' => [ type => 'Commic' ],
-        'sort' => [ 'desc' },
-        'get_result'
-    );
-    
-args must be array ref. You can omit args.
-
-You can get last method return value in scalar context or list context.
+    my $book = Book->new( { title => 'a', author => 'b' } );
 
 =head2 REQUIRED_ATTRS
 
@@ -717,6 +696,44 @@ You can set required attrs when object is create by new.
     sub REQUIRED_ATTRS{ qw( title author price ) }
 
 Please be careful not to write wrong spell.
+
+=head2 get_attrs
+
+This methods is not now recommended, Please do not use this method.
+
+I realize that this method is not essential for object, 
+and become to beleve this method is helper method for object.
+
+This method will be removed in future 2019/1/1.
+
+I implement the same functionality in L<Simo::Wrapper>.
+and this is used by L<Simo::Util> o function. 
+
+Pleae see L<Simo::Util> o function.
+    
+=head2  get_attrs_as_hash
+
+This methods is not now recommended for the same reason as get_attrs.
+
+This method will be removed in future 2019/1/1.
+
+Pleae see L<Simo::Util> o function.
+
+=head2 set_attrs
+
+This methods is not now recommended for the same reason as get_attrs.
+
+This method will be removed in future 2019/1/1.
+
+Pleae see L<Simo::Util> o function.
+
+=head2 run_methods
+
+This methods is not now recommended for the same reason as get_attrs.
+
+This method will be removed in future 2019/1/1.
+
+Pleae see L<Simo::Util> o function.
 
 =head1 MORE TECHNIQUES
 

@@ -1,0 +1,13 @@
+=head1 NAME
+
+Simo::Manual - Simo manual
+
+This is Simo manual
+
+=cut
+
+=head1 Simo tutorial
+
+now writing
+
+=cut
