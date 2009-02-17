@@ -1,3 +1,6 @@
+Version 0.0803
+    1. bag fix default is deep copy.
+
 Version 0.0802
     1. Document is updated.
     2. get_attrs, get_attrs_as_hash, set_attrs, run_methods is not recommended.

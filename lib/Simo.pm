@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0802';
+our $VERSION = '0.0803';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -247,12 +247,23 @@ sub _SIMO_create_accessor{
         qq/{\n/ .
         # arg recieve
         qq/    my ( \$self, \@vals ) = \@_;\n\n/;
-    
+
     if( defined $ac_opt->{ default } ){
         # default value
         $e .=
-        qq/    if( ! exists( \$self->{ $attr } ) ){\n/ .
-        qq/        \$self->{ $attr } = \$ac_opt->{ default };\n/ .
+        qq/    if( ! exists( \$self->{ $attr } ) ){\n/;
+
+        if( ref $ac_opt->{ default } ){
+        $e .=
+        qq/        require Storable;\n/ .
+        qq/        \$self->{ $attr } = Storable::dclone( \$ac_opt->{ default } );\n/;
+        }
+        else{
+        $e .=
+        qq/        \$self->{ $attr } = \$ac_opt->{ default };\n/;
+        }
+        
+        $e .=
         qq/    }\n/ .
         qq/    \n/;
     }
@@ -387,7 +398,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0802
+Version 0.0803
 
 =cut
 

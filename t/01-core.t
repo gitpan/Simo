@@ -386,3 +386,16 @@ package main;
     eval{ $t->x( 3 ) };
     like( $@, qr/T2::x is read only/, 'read_only die' );
 }
+
+package T3;
+use Simo;
+sub x{ ac default => [ 1 ] }
+
+package main;
+{
+    my $t1 = T3->new;
+    my $t2 = T3->new;
+    isnt( $t1->x, $t2->x, 'default adress is diffrence' );
+    is_deeply( $t1->x, $t2->x, 'default value is same' );
+    
+}
