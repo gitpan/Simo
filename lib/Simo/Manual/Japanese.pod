@@ -1,8 +1,10 @@
+=encoding utf-8
+
 =head1 NAME
 
 Simo::Manual::Japanese - Simo Manual writen by Japanese
 
-日本語で書かれたSimoのマニュアル　まだ書きかけ
+日本語で書かれたSimoのマニュアル　書きかけ
 
 =cut
 

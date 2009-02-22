@@ -1,4 +1,8 @@
 Version 0.0803
+    1. add Build.PL requires => Storable
+    2. add =encoding utf-8 to Simo::Manual::Japanese
+
+Version 0.0803
     1. bag fix default is deep copy.
 
 Version 0.0802
