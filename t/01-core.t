@@ -204,8 +204,8 @@ sub x{ ac constrain => sub{ $_ == 1 or die 'constrain $_' } }
 sub y{ ac constrain => sub{ $_[0] == 1 or die 'constrain $_[0]' } }
 sub z{ ac
     constrain => [
-        sub{ $_ < 3  or die "" },
-        sub{ $_ > 1  or die "" }
+        sub{ $_ < 3  or die "a" },
+        sub{ $_ > 1  or die "b" }
     ]
 }
 

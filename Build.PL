@@ -9,6 +9,7 @@ my $builder = Module::Build->new(
     dist_version_from   => 'lib/Simo.pm',
     build_requires => {
         'Test::More' => 0,
+        'Test::Pod' => 1.26
     },
     requires => {
         'Storable' => 0,

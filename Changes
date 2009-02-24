@@ -1,4 +1,7 @@
-Version 0.0803
+Version 0.0805
+    1. add Build.PL build_requires Test::Pod => 1.26
+
+Version 0.0804
     1. add Build.PL requires => Storable
     2. add =encoding utf-8 to Simo::Manual::Japanese
 

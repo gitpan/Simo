@@ -8,7 +8,8 @@ WriteMakefile
           'VERSION_FROM' => 'lib/Simo.pm',
           'PREREQ_PM' => {
                            'Test::More' => 0,
-                           'Storable' => 0
+                           'Storable' => 0,
+                           'Test::Pod' => '1.26'
                          }
         )
 ;
