@@ -1,3 +1,5 @@
+0.0806
+    Build.PL requires => { 'Pod::Simple' => 3.07 }
 Version 0.0805
     1. add Build.PL build_requires Test::Pod => 1.26
 

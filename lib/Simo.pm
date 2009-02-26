@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Carp;
 
-our $VERSION = '0.0805';
+our $VERSION = '0.0806';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -91,90 +91,6 @@ sub new{
 
 # required keys when object is created by new.
 sub REQUIRED_ATTRS{ () }
-
-# get value specify attr names
-sub get_attrs{
-    my ( $self, @attrs ) = @_;
-    
-    @attrs = @{ $attrs[0] } if ref $attrs[0] eq 'ARRAY';
-    
-    my @vals;
-    foreach my $attr ( @attrs ){
-        croak "Invalid key '$attr' is passed to get_attrs" unless $self->can( $attr );
-        my $val = $self->$attr;
-        push @vals, $val;
-    }
-    wantarray ? @vals : $vals[0];
-}
-
-# get value as hash specify attr names
-sub get_attrs_as_hash{
-    my ( $self, @attrs ) = @_;
-    my @vals = $self->get_attrs( @attrs );
-    
-    my %attrs;
-    @attrs{ @attrs } = @vals;
-    
-    wantarray ? %attrs : \%attrs;
-}
-
-# set values
-sub set_attrs{
-    my ( $self, @args ) = @_;
-
-    # check args
-    @args = %{ $args[0] } if ref $args[0] eq 'HASH';
-    croak 'key-value pairs must be passed to set_attrs' if @args % 2;
-    
-    # set args
-    while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
-        croak "Invalid key '$attr' is passed to set_attrs" unless $self->can( $attr );
-        no strict 'refs';
-        $self->$attr( $val );
-    }
-    return $self;
-}
-
-# run methods
-sub run_methods{
-    my ( $self, @method_or_args_list ) = @_;
-    
-    my $method_infos = $self->_SIMO_parse_run_methods_args( @method_or_args_list );
-    while( my $method_info = shift @{ $method_infos } ){
-        my ( $method, $args ) = @{ $method_info }{ qw( name args ) };
-        
-        if( @{ $method_infos } ){
-            $self->$method( @{ $args } );
-        }
-        else{
-            return wantarray ? ( $self->$method( @{ $args } ) ) :
-                                 $self->$method( @{ $args } );
-        }
-    }
-}
-
-sub _SIMO_parse_run_methods_args{
-    my ( $self, @method_or_args_list ) = @_;
-    
-    my $method_infos = [];
-    while( my $method_or_args = shift @method_or_args_list ){
-        croak "$method_or_args is bad. Method name must be string and args must be array ref"
-            if ref $method_or_args;
-        
-        my $method = $method_or_args;
-        croak "$method is not exist" unless $self->can( $method );
-        
-        my $method_info = {};
-        $method_info->{ name } = $method;
-        $method_info->{ args } = ref $method_or_args_list[0] eq 'ARRAY' ?
-                                 shift @method_or_args_list :
-                                 [];
-        
-        push @{ $method_infos }, $method_info;
-    }
-    return $method_infos;
-}
-
 
 # create accessor
 sub ac(@){
@@ -392,13 +308,117 @@ sub _SIMO_get_ac_info {
     return ( $self, $attr, $pkg, @vals );
 }
 
+###---------------------------------------------------------------------------
+# The following methods is not recommend function 
+# These method is not essential as nature of object.
+# To provide the same fanctionality, I create Simo::Wrapper.
+# See Also Simo::Wrapper
+# These methods will be removed in future 2019/01/01
+###---------------------------------------------------------------------------
+
+# get value specify attr names
+# ( not recommended )
+sub get_attrs{
+    my ( $self, @attrs ) = @_;
+    
+    @attrs = @{ $attrs[0] } if ref $attrs[0] eq 'ARRAY';
+    
+    my @vals;
+    foreach my $attr ( @attrs ){
+        croak "Invalid key '$attr' is passed to get_attrs" unless $self->can( $attr );
+        my $val = $self->$attr;
+        push @vals, $val;
+    }
+    wantarray ? @vals : $vals[0];
+}
+
+# get value as hash specify attr names
+# ( not recommended )
+sub get_attrs_as_hash{
+    my ( $self, @attrs ) = @_;
+    my @vals = $self->get_attrs( @attrs );
+    
+    my %attrs;
+    @attrs{ @attrs } = @vals;
+    
+    wantarray ? %attrs : \%attrs;
+}
+
+# set values
+# ( not recommended )
+sub set_attrs{
+    my ( $self, @args ) = @_;
+
+    # check args
+    @args = %{ $args[0] } if ref $args[0] eq 'HASH';
+    croak 'key-value pairs must be passed to set_attrs' if @args % 2;
+    
+    # set args
+    while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
+        croak "Invalid key '$attr' is passed to set_attrs" unless $self->can( $attr );
+        no strict 'refs';
+        $self->$attr( $val );
+    }
+    return $self;
+}
+
+# run methods
+# ( not recommended )
+sub run_methods{
+    my ( $self, @method_or_args_list ) = @_;
+    
+    my $method_infos = $self->_SIMO_parse_run_methods_args( @method_or_args_list );
+    while( my $method_info = shift @{ $method_infos } ){
+        my ( $method, $args ) = @{ $method_info }{ qw( name args ) };
+        
+        if( @{ $method_infos } ){
+            $self->$method( @{ $args } );
+        }
+        else{
+            return wantarray ? ( $self->$method( @{ $args } ) ) :
+                                 $self->$method( @{ $args } );
+        }
+    }
+}
+
+# ( not recommended )
+sub _SIMO_parse_run_methods_args{
+    my ( $self, @method_or_args_list ) = @_;
+    
+    my $method_infos = [];
+    while( my $method_or_args = shift @method_or_args_list ){
+        croak "$method_or_args is bad. Method name must be string and args must be array ref"
+            if ref $method_or_args;
+        
+        my $method = $method_or_args;
+        croak "$method is not exist" unless $self->can( $method );
+        
+        my $method_info = {};
+        $method_info->{ name } = $method;
+        $method_info->{ args } = ref $method_or_args_list[0] eq 'ARRAY' ?
+                                 shift @method_or_args_list :
+                                 [];
+        
+        push @{ $method_infos }, $method_info;
+    }
+    return $method_infos;
+}
+
 =head1 NAME
 
 Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0805
+Version 0.0806
+
+=cut
+
+=head1 CAUTION
+
+Simo is yet experimenta stage.
+
+Please wait until Simo will be stable.
 
 =cut
 
