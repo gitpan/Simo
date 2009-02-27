@@ -2,8 +2,9 @@ package Simo;
 use strict;
 use warnings;
 use Carp;
+use Simo::Error;
 
-our $VERSION = '0.0806';
+our $VERSION = '0.09_01';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -76,15 +77,27 @@ sub new{
     
     # set args
     while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
-        croak "Invalid key '$attr' is passed to new" unless $self->can( $attr );
-        
+        unless( $self->can( $attr ) ){
+            Simo::Error->throw(
+                type => 'attr_not_exist',
+                msg => "Invalid key '$attr' is passed to new",
+                pkg => $pkg,
+                attr => $attr
+            );
+        }
         no strict 'refs';
         $self->$attr( $val );
     }
     
     foreach my $required_attrs ( $self->REQUIRED_ATTRS ){
-        croak "Attr '$required_attrs' is required." 
-            unless exists $self->{ $required_attrs };
+        unless( exists $self->{ $required_attrs } ){
+            Simo::Error->throw(
+                type => 'attr_required',
+                msg => "Attr '$required_attrs' is required.",
+                pkg => $pkg,
+                attr => $required_attrs
+            );
+        }
     }
     return $self;
 }
@@ -232,7 +245,13 @@ sub _SIMO_create_accessor{
         qq/            my \$ret = \$constrain->( \$val );\n/ .
         qq/            if( !\$ret ){\n/ .
         qq/                \$@ ||= 'must be valid value.';\n/ .
-        qq/                Carp::croak( "${pkg}::$attr \$@" )\n/ .
+        qq/                Simo::Error->throw(\n/ .
+        qq/                    type => 'type_invalid',\n/ .
+        qq/                    msg => "${pkg}::$attr \$@",\n/ .
+        qq/                    pkg => "$pkg",\n/ .
+        qq/                    attr => "$attr",\n/ .
+        qq/                    val => \$val,\n/ .
+        qq/                );\n/ .
         qq/            }\n/ .
         qq/        }\n\n/;
     }
@@ -309,7 +328,7 @@ sub _SIMO_get_ac_info {
 }
 
 ###---------------------------------------------------------------------------
-# The following methods is not recommend function 
+# The following methods is not recommended function 
 # These method is not essential as nature of object.
 # To provide the same fanctionality, I create Simo::Wrapper.
 # See Also Simo::Wrapper
@@ -410,7 +429,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.0806
+Version 0.09_01
 
 =cut
 

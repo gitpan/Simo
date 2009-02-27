@@ -9,8 +9,7 @@ WriteMakefile
           'PREREQ_PM' => {
                            'Test::More' => 0,
                            'Storable' => 0,
-                           'Pod::Simple' => '3.07',
-                           'Test::Pod' => '1.26'
+                           'Simo::Error' => '0.0206'
                          }
         )
 ;

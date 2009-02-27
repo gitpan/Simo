@@ -79,6 +79,7 @@ package main;
         my $book = Book->new( noexist => 1 );
     };
     like( $@, qr/Invalid key 'noexist' is passed to new/, 'invalid key to new' );
+    is_deeply( [ $@->type, $@->pkg, $@->attr ], [ 'attr_not_exist', 'Book', 'noexist' ], 'invalid key to new. Simo::Error object' );
 }
 
 # set and get array and hash
@@ -283,6 +284,7 @@ package main;
     
     eval{ $t->r( 1 ) };
     like( $@, qr/MyTest1::r must be valid value\./ , 'constrain return faluse value. $@ is not set' );
+    is_deeply( [ $@->type, $@->pkg, $@->attr ], [ 'type_invalid', 'MyTest1', 'r' ], 'type invalid. Simo::Error object' );
     
     eval{ $t->s( 'a' ) };
     like( $@, qr/MyTest1::s err/ , 'constrain return faluse value. $@ is set' );

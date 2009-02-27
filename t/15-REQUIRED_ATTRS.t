@@ -15,5 +15,6 @@ package main;
 {
     eval{ B1->new( b1 => 1 ) };
     like( $@, qr/Attr 'b2' is required/, 'attr required' );
+    is_deeply( [ $@->type, $@->pkg, $@->attr ], [ 'attr_required', 'B1', 'b2' ], 'required key to new. Simo::Error object' );
 }
 
