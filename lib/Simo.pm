@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.09_02';
+our $VERSION = '0.09_03';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -205,7 +205,14 @@ sub _SIMO_create_accessor{
 
     if ( $ac_opt->{ read_only } ){
         $e .=
-        qq/    Carp::croak( "${pkg}::$attr is read only" ) if \@vals;\n\n/;
+        qq/    if( \@vals ){\n/ .
+        qq/        Simo::Error->throw(\n/ .
+        qq/            type => 'read_only',\n/ .
+        qq/            msg => "${pkg}::$attr is read only",\n/ .
+        qq/            pkg => "$pkg",\n/ .
+        qq/            attr => "$attr"\n/ .
+        qq/        );\n/ .
+        qq/    }\n\n/;
         
         goto END_OF_VALUE_SETTING;
     }
@@ -252,7 +259,7 @@ sub _SIMO_create_accessor{
         qq/                    msg => "${pkg}::$attr \$@",\n/ .
         qq/                    pkg => "$pkg",\n/ .
         qq/                    attr => "$attr",\n/ .
-        qq/                    val => \$val,\n/ .
+        qq/                    val => \$val\n/ .
         qq/                );\n/ .
         qq/            }\n/ .
         qq/        }\n\n/;
@@ -436,7 +443,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.09_02
+Version 0.09_03
 
 =cut
 
@@ -476,6 +483,8 @@ writing new methods and accessors repeatedly.
 =head2 Class definition
 
     package Book;
+    use Simo;
+    
     sub title{ ac }
     sub author{ ac }
     sub price{ ac }
@@ -512,7 +521,7 @@ writing new methods and accessors repeatedly.
 
     sub country_id{ ac hash_force => 1 }
 
-=head2 required attribute
+=head2 Required attributes
 
     sub REQUIRED_ATTRS{ qw( title author ) }
 
@@ -544,13 +553,23 @@ If you are Japanese, See also L<Simo::Manual::Japanese>.
 
 ac is exported. This is used to define accessor.
 
+    package Book;
+    use Simo;
+    
+    sub title{ ac }
+    sub author{ ac }
+    sub price{ ac }
+
 =cut
 
 =head1 METHODS
 
 =head2 new
 
-constructor for subclass.
+new method is prepared.
+
+    use Book;
+    my $book = Book->new( title => 'a', author => 'b', price => 1000 );
 
 =head2 REQUIRED_ATTRS
 
@@ -558,23 +577,24 @@ this method is expected to override.
 
 You can define required attribute.
 
+    package Book;
+    use Simo;
+    
+    sub title{ ac }
+    sub author{ ac }
+    sub price{ ac }
+    
+    sub REQUIRED_ATTRS{ qw( title author ) }
+
 =cut
 
 =head1 SEE ALSO
 
-=head2 Simo::Constrain
-
 L<Simo::Constrain> - Constraint methods for Simo 'constrain' option.
-
-=head2 Simo::Error
 
 L<Simo::Error> - Structured error system for Simo.
 
-=head2 Simo::Util
-
 L<Simo::Util> - Utitlity class for Simo. 
-
-=head2 Simo::Wrapper
 
 L<Simo::Wrapper> - provide useful methods for object.
 

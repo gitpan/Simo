@@ -387,6 +387,7 @@ package main;
     
     eval{ $t->x( 3 ) };
     like( $@, qr/T2::x is read only/, 'read_only die' );
+    is_deeply( [ $@->type, $@->pkg, $@->attr ], [ 'read_only', 'T2', 'x' ], 'read only error object' );
 }
 
 package T3;

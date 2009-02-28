@@ -1,3 +1,6 @@
+0.09_03
+    1. read_only throw Simo::Error
+    2. document update
 0.09_02
     1. update Document
     2. use 5.008_001
