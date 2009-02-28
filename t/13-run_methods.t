@@ -18,6 +18,7 @@ sub m2{
 }
 
 package main;
+$SIG{__WARN__} = sub{};
 {
     my $t = T1->new;
     my $ret = $t->run_methods(

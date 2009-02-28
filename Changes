@@ -1,3 +1,9 @@
+0.09_02
+    1. update Document
+    2. use 5.008_001
+0.09_01
+    1. use Simo::Error;
+    
 0.0806
     Build.PL requires => { 'Pod::Simple' => 3.07 }
 Version 0.0805

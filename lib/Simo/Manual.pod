@@ -1,13 +1,229 @@
 =head1 NAME
 
-Simo::Manual - Simo manual
-
-This is Simo manual
+Simo::Manual - Simo Manual
 
 =cut
 
-=head1 Simo tutorial
+=head1 CAUTION
 
-now writing
+Now writing.
+
+Please wait.
 
 =cut
+
+=head1 DESCRIPTION
+
+=head2 Accessor options
+
+=head3 default option
+
+You can define default value of attribute.
+
+    sub title{ ac default => 'Perl is very interesting' }
+
+=cut
+
+=head3 constrain option
+
+you can constrain setting value.
+
+    sub price{ ac constrain => sub{ /^\d+$/ } }
+
+For example, If you call $book->price( 'a' ), this call is die, because 'a' is not number.
+
+'a' is set to $_. so if you can use regular expression, omit $_.
+
+you can write not omiting $_.
+
+    sub price{ ac constrain => sub{ $_ > 0 && $_ < 3 } }
+
+If you display your message when program is die, you call craok.
+    
+    use Carp;
+    sub price{ ac constrain => sub{ $_ > 0 && $_ < 3 or croak "Illegal value" } }
+
+and 'a' is alse set to first argument. So you can receive 'a' as first argument.
+
+   sub price{ ac constrain => \&_is_number }
+   
+   sub _is_number{
+       my $val = shift;
+       return $val =~ /^\d+$/;
+   }
+
+and you can define more than one constrain.
+
+    sub price{ ac constrain => [ \&_is_number, \&_is_non_zero ] }
+
+=cut
+
+=head3 filter option
+
+you can filter setting value.
+
+    sub description{ ac filter => sub{ uc } }
+
+setting value is $_ and frist argument like constrain.
+
+and you can define more than one filter.
+
+    sub description{ ac filter => [ \&uc, \&quoute ] }
+
+=cut
+
+=head3 trigger option
+
+You can define subroutine called after value is set.
+
+For example, issue_datetime is set, issue_date is update.
+
+$self is set to $_ and $_[0] different from constrain and filter.
+
+    sub issue_datetime{ ac trigger => \&update_issue_date }
+    sub issue_date{ ac }
+    
+    sub update_issue_date{
+        my $self = shift;
+        my $date = substr( $self->issue_datetime, 0, 10 );
+        $self->issue_date( $date );
+    }
+
+and you can define more than one trigger.
+
+    sub issue_datetime{ ac trigger => [ \&update_issue_date, \&update_issue_time ] }
+
+=cut
+
+=head3 read_only option
+
+Read only accessor is defined
+
+    sub get_size{ ac default => 5, read_only => 1 }
+
+Accessor name should be contain 'get_'.If not, warnings is happen.
+
+=head3 hash_force option
+
+If you pass array to accessor, Normally list convert to array ref.
+    $book->title( 'a' , 'b' ); # convert to [ 'a', 'b' ]
+
+Even if you write
+    $book->title( a => 'b' )
+
+( a => 'b' ) converted to [ 'a', 'b' ] 
+
+If you use hash_force option, you convert list to hash ref
+
+    sub country_id{ ac hash_force => 1 }
+
+    $book->title( a => 'b' ); # convert to { a => 'b' }
+
+=cut
+
+=head2 Order of constrain, filter and trigger
+
+=over 4
+
+=item 1. val is passed to constrain subroutine.
+
+=item 2. val is passed to filter subroutine.
+
+=item 3. val is set
+
+=item 4. trigger subroutine is called
+
+=back
+
+       |---------|   |------|                  |-------| 
+       |         |   |      |                  |       | 
+ val-->|constrain|-->|filter|-->(val is set)-->|trigger| 
+       |         |   |      |                  |       | 
+       |---------|   |------|                  |-------| 
+
+=cut
+
+=head2 Get old value
+
+You can get old value when you use accessor as setter.
+
+    $book->author( 'Ken' );
+    my $old_value = $book->author( 'Taro' ); # $old_value is 'Ken'
+
+=cut
+
+=head1 MORE TECHNIQUE
+
+=head2 New method overriding
+
+by default, new method receive key-value pairs.
+But you can change this action by overriding new method.
+
+For example, Point class. You want to call new method this way.
+
+    my $point = Point->new( 3, 5 ); # xPos and yPos
+
+You can override new method.
+    
+    package Point;
+    use Simo;
+
+    sub new{
+        my ( $self, $x, $y ) = @_; # two arg( not key-value pairs )
+        
+        # You can do anything if you need
+        
+        return $self->SUPER::new( x => $x, y => $y );
+    }
+
+    sub x{ ac }
+    sub y{ ac }
+    1;
+
+Simo implement inheritable new method.
+Whenever You change argments or add initializetion,
+You override new method.
+
+=cut
+
+=head2 Extend base class
+
+you may want to extend base class. It is OK.
+
+But I should say to you that there are one thing you should know.
+The order of Inheritance is very important.
+
+I write good sample and bad sample.
+
+    # base class
+    package Book;
+    sub title{ ac };
+    
+    # Good sample.
+    # inherit base class. It is OK!
+    package Magazine;
+    use base 'Book'; # use base is first
+    use Simo;        # use Simo is second;
+    
+    # Bad sample
+    package Magazine;
+    use Simo;          # use Simo is first
+    use base 'Book';   # use base is second
+
+If you call new method in Good sample, you call Book::new method.
+This is what you wanto to do.
+
+If you call new method in Bad sample, you call Simo::new method. 
+you will think why Book::new method is not called?
+
+Maybe, You will be wrong sometime. So I recomend you the following writing.
+
+    package Magazine; use base 'Book'; # package and base class
+    use Simo;                          
+
+It is like other language class Definition and I think looking is not bat.
+and you are not likely to choose wrong order.
+
+=cut
+
+

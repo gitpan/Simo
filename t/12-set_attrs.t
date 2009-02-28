@@ -9,6 +9,7 @@ sub x{ ac }
 sub y{ ac }
 
 package main;
+$SIG{__WARN__} = sub{};
 {
     my $t = T1->new;
     $t->set_attrs( x => 1, y => 2 );

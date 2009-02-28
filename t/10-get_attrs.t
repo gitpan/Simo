@@ -10,6 +10,9 @@ sub x{ ac default => 1 }
 sub y{ ac default => 2 }
 
 package main;
+
+$SIG{__WARN__} = sub{};
+
 {
     my $t = T1->new;
     
