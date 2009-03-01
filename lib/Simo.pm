@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.09_03';
+our $VERSION = '0.09_04';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -27,6 +27,7 @@ sub import{
         # export function
         no strict 'refs';
         *{ "${caller_pkg}::ac" } = \&Simo::ac;
+        *{ "${caller_pkg}::and_super" } = \&Simo::and_super;
     }
     
     # caller package inherit these classes
@@ -324,6 +325,30 @@ sub _SIMO_create_accessor{
     return $e;
 }
 
+sub and_super{
+    croak "Cannot pass args to 'and_super'" if @_;
+    my ( $self, @args );
+    my @caller;
+    {
+        package DB;
+        @caller = caller 1;
+        
+        ( $self, @args ) = @DB::args;
+    }
+    
+    my $sub = $caller[ 3 ];
+    my ( $pkg, $sub_base ) = $sub =~ /^(.*)::(.+)$/;
+    
+    my @ret;
+    {
+        no strict 'refs';
+        my $super = "SUPER::${sub_base}";
+        @ret = eval "package $pkg; \$self->\$super( \@args );";
+    }
+    if( $@ ){ $@ =~ s/\s+at .+$//; croak $@ }
+    return @ret;
+}
+
 # Helper to get acsessor info;
 sub _SIMO_get_ac_info {
     package DB;
@@ -443,7 +468,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.09_03
+Version 0.09_04
 
 =cut
 
@@ -561,6 +586,12 @@ ac is exported. This is used to define accessor.
     sub price{ ac }
 
 =cut
+
+=head2 and_super
+
+and_super is exported. This is used to call super method for REQUIRED_ATTRS.
+
+    sub REQUIRED_ATTRS{ 'm1', 'm2', and_super }
 
 =head1 METHODS
 
