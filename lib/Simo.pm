@@ -6,9 +6,9 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.09_05';
+our $VERSION = '0.1001';
 
-my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
+my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
     my ( $self, @opts ) = @_;
     @opts = %{ $opts[0] } if ref $opts[0] eq 'HASH';
@@ -33,7 +33,7 @@ sub import{
     # caller package inherit these classes
     # 1.base class,  2.Simo,  3.mixin class
     
-    _SIMO_inherit_classes( $caller_pkg, $import_opt->{ base }, $import_opt->{ mixin } );
+    _SIMO_inherit_classes( $caller_pkg, @{ $import_opt }{ qw( base new mixin ) } );
 
     # auto strict and warnings
     strict->import;
@@ -42,9 +42,15 @@ sub import{
 
 # callar package inherit some classes
 sub _SIMO_inherit_classes{
-    my ( $pkg, $base, $mixin ) = @_;
+    my ( $pkg, $base, $new, $mixin ) = @_;
     
     my @classes;
+    
+    if( $new ){
+        push @classes,
+            ref $new eq 'ARRAY' ? @{ $new } : $new;
+    }
+    
     if( $base ){
         push @classes,
             ref $base eq 'ARRAY' ? @{ $base } : $base;
@@ -522,7 +528,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.09_05
+Version 0.1001
 
 =cut
 

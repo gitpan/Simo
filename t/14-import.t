@@ -49,4 +49,53 @@ eval"use Simo( base => 'B2:A' )";
 package main;
 like( $@, qr/Invalid class name 'B2:A'/, 'Invalid class name' );
 
+package T5;
+use Simo( new => 'T1' );
 
+package main;
+{
+    my $t = T5->new;
+    isa_ok( $t, 'T1' );
+}
+
+package T6;
+use Simo( new => [ 'T1', 'T2' ] );
+
+package main;
+{
+    my $t = T6->new;
+    isa_ok( $t, 'T1' );
+    isa_ok( $t, 'T2' );
+}
+
+package B3;
+sub b1{};
+
+package B4::A;
+sub b2{}
+
+package M3;
+sub m1{}
+
+package M4;
+sub m2{}
+
+package N1;
+use Simo( base => 'B3' );
+sub new{ shift->SUPER::new( @_ ) }
+
+package T7;
+use Simo { base => [ 'B3', 'B4::A' ], new => 'N1', mixin => [ 'M3', 'M4' ] };
+
+sub a1{ ac }
+
+sub new{ return shift->SUPER::new( @_ ) }
+
+package main;
+{
+     my $t = T7->new( a1 => 1 );
+     $t->can( 'a1' );
+     is( $t->a1, 1, 'new' );
+     
+     is_deeply( [ @T7::ISA ], [ qw( N1 B4::A M3 M4 ) ], 'inherit order' );   
+}

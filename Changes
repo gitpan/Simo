@@ -1,3 +1,6 @@
+0.1001
+    experimental version release
+    add import option 'new'
 0.09_05
     add method. 'new_self_and_accessor'
 0.09_04
