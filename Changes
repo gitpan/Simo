@@ -1,5 +1,7 @@
+0.09_05
+    add method. 'new_self_and_accessor'
 0.09_04
-    and_super method.
+    add method. 'and_super'
 0.09_03
     1. read_only throw Simo::Error
     2. document update

@@ -226,4 +226,34 @@ and you are not likely to choose wrong order.
 
 =cut
 
+=head2 new_self_and_parent
+
+new_self_and_parent resolve the inheritance of no Simo based class;
+
+    
+    # no Simo based class
+    package Book;
+    sub new{
+        my ( $proto, %args ) = @_;
+        my $class = ref $proto || $proto;
+        
+        my $self = {};
+        bless $self, $class;
+        
+        $self->{ title } = $args{ title };
+        $self->{ author } = $args{ author };
+        
+        return $self;
+    }
+    
+    package Magazine;
+    use Simo( base => 'Book' );
+    
+    sub price{ ac }
+    sub description{ ac }
+    
+    sub new{
+        my ( $self, @args ) = @_;
+        return $self->new_self_and_parent( @args, [ 'title', 'author' ] );
+
 

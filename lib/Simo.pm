@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.09_04';
+our $VERSION = '0.09_05';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base mixin );
 sub import{
@@ -103,6 +103,60 @@ sub new{
         }
     }
     return $self;
+}
+
+sub new_self_and_parent{
+    my $self = shift;
+    my $class = ref $self || $self;
+    
+    my $parent_pkg = do{
+        no strict 'refs';
+        ${"${class}::ISA"}[0];
+    };
+    
+    croak "Cannot call 'new_self_and_parent' from the class having no parent."
+        if $parent_pkg eq 'Simo';
+    
+    croak "'$parent_pkg' do not have 'new'." unless $parent_pkg->can( 'new' );
+    
+    my $parent;
+    my $simo;
+    
+    my $last_arg = pop;
+    if( ref $last_arg eq 'ARRAY' ){
+        my $parent_attrs = $last_arg;
+        my @args = @_;
+        
+        @args = %{ @args } if ref $args[0] eq 'HASH';
+        croak 'key-value pairs must be passed to new' if @args % 2;
+        
+        my %args = @args;
+        my %parent_args;
+        foreach my $parent_attr ( @{ $parent_attrs } ){
+            $parent_args{ $parent_attr } = delete $args{ $parent_attr };
+        }
+        
+        $parent = $parent_pkg->new( %parent_args );
+        $simo = $self->Simo::new( %args );
+    }
+    elsif( ref $last_arg eq 'HASH' && @_ == 0  ){
+        my $parent_args = $last_arg->{ parent_args };
+        my $self_args = $last_arg->{ self_args };
+
+        croak "'self_args' must be array reference." unless ref $self_args eq 'ARRAY';
+        croak "'parent_args' must be array reference." unless ref $parent_args  eq 'ARRAY';
+        
+        $parent = $parent_pkg->new( @{ $parent_args } );
+        $simo = $self->Simo::new( @{ $self_args } );
+    }
+    else{
+        croak "'new_self_and_parent' argument is invalid.";
+    }
+    
+    eval{ $parent = { %{ $parent }, %{ $simo } } };
+    croak "'$parent_pkg' must be the class based on hash reference."
+        if $@;
+    return bless $parent, $class;
 }
 
 # required keys when object is created by new.
@@ -468,7 +522,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.09_04
+Version 0.09_05
 
 =cut
 
@@ -601,6 +655,14 @@ new method is prepared.
 
     use Book;
     my $book = Book->new( title => 'a', author => 'b', price => 1000 );
+
+=head2 new_self_and_parent
+
+new_self_and_parent resolve the inheritance of no Simo based class;
+
+    $self->new_self_and_parent( @_, [ 'title', 'author' ] );
+    
+    $self->new_self_and_parent( { self_args => [], parent_args => [] } );
 
 =head2 REQUIRED_ATTRS
 
