@@ -1,3 +1,5 @@
+0.1002
+    add accessor option 'auto_build'
 0.1001
     experimental version release
     add import option 'new'

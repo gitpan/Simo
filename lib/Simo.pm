@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.1001';
+our $VERSION = '0.1002';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -178,7 +178,7 @@ sub ac(@){
 }
 
 # accessor option
-my %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force read_only );
+my %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force read_only auto_build );
 
 # Simo process. register accessor option and create accessor.
 sub _SIMO_process{
@@ -209,6 +209,8 @@ sub _SIMO_process{
         my $code = _SIMO_create_accessor( $pkg, $attr, $ac_opt );
         no warnings qw( redefine closure );
         eval"sub ${pkg}::${attr} $code";
+        
+        croak $@ if $@; # for debug. never ocuured.
     }
     return ( $self, $attr, @vals );
 }
@@ -256,6 +258,23 @@ sub _SIMO_create_accessor{
         }
         
         $e .=
+        qq/    }\n/ .
+        qq/    \n/;
+    }
+    
+    if( $ac_opt->{ auto_build } ){
+        # automatically call build method
+        Carp::croak( "'build_$attr' must exist in '$pkg' or parent when 'auto_build' option is set." )
+            unless $pkg->can( "build_$attr" );
+        
+        $e .=
+        qq/    if(  ! \$ac_opt->{ called_from_build_method } && ! exists( \$self->{ $attr } ) ){\n/ .
+        qq/        \$ac_opt->{ called_from_build_method } = 1;\n/ .
+        qq/        \$self->build_$attr;\n/ .
+        qq/        \$ac_opt->{ called_from_build_method } = 0;\n/ .
+        qq/    }\n/ .
+        qq/    else{\n/ .
+        qq/        \$ac_opt->{ called_from_build_method } = 0;\n/ .
         qq/    }\n/ .
         qq/    \n/;
     }
@@ -528,7 +547,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1001
+Version 0.1002
 
 =cut
 
@@ -548,13 +567,13 @@ The feature is that
 
 =over 4
 
-=item 1. You can define B<accessors> in very simple way.
+=item 1. You can define accessors in very simple way.
 
-=item 2. B<new> method is prepared.
+=item 2. new method is prepared.
 
-=item 3. You can define B<default value> of attribute.
+=item 3. You can define default value of attribute.
 
-=item 4. B<Error object> is thrown, when error is occured.
+=item 4. Error object is thrown, when error is occured.
 
 =back
 
@@ -565,60 +584,63 @@ writing new methods and accessors repeatedly.
 
 =head1 SYNOPSIS
 
-=head2 Class definition
-
+    #Class definition
     package Book;
     use Simo;
     
     sub title{ ac }
     sub author{ ac }
     sub price{ ac }
-
-=head2 Using class
-
+    
+    # Using class
     use Book;
     my $book = Book->new( title => 'a', author => 'b', price => 1000 );
     
-=head2 Default value of attribute
-
+    # Default value of attribute
     sub author{ ac default => 'Kimoto' }
-
-=head2 Constraint of attribute setting
     
+    #Automatically build of attribute
+    sub author{ ac auto_build => 1 }
+    sub build_author{ 
+        my $self = shift;
+        $self->author( $self->title . "b" );
+    }
+    
+    sub title{ ac default => 'a' }
+    
+    # Constraint of attribute setting
     use Simo::Constrain qw( is_int isa );
     sub price{ ac constrain => sub{ is_int } }
     sub author{ ac constrain => sub{ isa 'Person' } }
-
-=head2 Filter of attribute setting
-
+    
+    # Filter of attribute setting
     sub author{ ac filter => sub{ uc } }
-
-=head2 Trigger of attribute setting
-
+    
+    # Trigger of attribute setting
+    
     sub date{ ac trigger => sub{ $_->year( substr( $_->date, 0, 4 ) ) } } 
     sub year{ ac }
-
-=head2 Read only accessor
-
+    
+    # Read only accessor
     sub year{ ac read_only => 1 }
-
-=head2 Hash ref convert of attribute setting
-
+    
+    # Hash ref convert of attribute setting
     sub country_id{ ac hash_force => 1 }
-
-=head2 Required attributes
-
+    
+    # Required attributes
     sub REQUIRED_ATTRS{ qw( title author ) }
-
-=head2 Inheritance
-
+    
+    # Inheritance
     package Magazine;
     use Simo( base => 'Book' );
-
-=head2 Mixin
-
+    
+    # Mixin
     package Book;
     use Simo( mixin => 'Class::Cloneable' );
+    
+    # new method include
+    package Book;
+    use Simo( new => 'Some::New::Class' );
 
 =cut
 

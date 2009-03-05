@@ -402,3 +402,32 @@ package main;
     is_deeply( $t1->x, $t2->x, 'default value is same' );
     
 }
+
+package T4;
+use Simo;
+
+sub a1{ ac auto_build => 1 }
+sub build_a1{
+    my $self = shift;
+    $self->a1( 1 );
+}
+
+sub a2{ ac auto_build => 1 }
+sub build_a2{ 
+    my $self = shift;
+    $self->{ a2 } = 1;
+}
+
+sub a3{ ac auto_build => 1 }
+
+package main;
+
+{
+    my $o = T4->new;
+    is( $o->a1, 1, 'auto_build' );
+    is( $o->a2, 1, 'auto_build direct access' );
+    
+    eval{ $o->a3 };
+    like( $@, qr/'build_a3' must exist in 'T4' or parent when 'auto_build' option is set/, 'no build method' );
+}
+
