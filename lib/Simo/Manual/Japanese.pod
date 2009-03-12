@@ -1,6 +1,6 @@
 =encoding utf-8
 
-=heed1 注意
+=head1 注意
 
 この記事は書きかけです。
 
