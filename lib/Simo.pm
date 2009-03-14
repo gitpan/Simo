@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.1005';
+our $VERSION = '0.1006';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -82,14 +82,14 @@ sub new{
     
     # check args
     @args = %{ $args[0] } if ref $args[0] eq 'HASH';
-    croak 'key-value pairs must be passed to new' if @args % 2;
+    croak "key-value pairs must be passed to ${pkg}::new" if @args % 2;
     
     # set args
     while( my ( $attr, $val ) = splice( @args, 0, 2 ) ){
         unless( $self->can( $attr ) ){
             Simo::Error->throw(
                 type => 'attr_not_exist',
-                msg => "Invalid key '$attr' is passed to new",
+                msg => "Invalid key '$attr' is passed to ${pkg}::new",
                 pkg => $pkg,
                 attr => $attr
             );
@@ -547,7 +547,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1005
+Version 0.1006
 
 =cut
 

@@ -69,7 +69,7 @@ package main;
         my $book = Book->new( 'a' );
     };
     like( 
-        $@, qr/key-value pairs must be passed to new/,
+        $@, qr/key-value pairs must be passed to Book::new/,
         'not pass key value pair'
     );
 }
@@ -78,7 +78,7 @@ package main;
     eval{
         my $book = Book->new( noexist => 1 );
     };
-    like( $@, qr/Invalid key 'noexist' is passed to new/, 'invalid key to new' );
+    like( $@, qr/Invalid key 'noexist' is passed to Book::new/, 'invalid key to new' );
     is_deeply( [ $@->type, $@->pkg, $@->attr ], [ 'attr_not_exist', 'Book', 'noexist' ], 'invalid key to new. Simo::Error object' );
 }
 
