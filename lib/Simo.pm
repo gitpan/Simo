@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.1006';
+our $VERSION = '0.1007';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -547,7 +547,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1006
+Version 0.1007
 
 =cut
 

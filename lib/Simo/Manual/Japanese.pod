@@ -93,6 +93,13 @@ Simoを使えば、アクセッサを簡潔に記述することができます�
 アクセッサを定義するには ac 関数を呼ぶだけです。
 またコンストラクタ new は自動的に準備されます。
 
+また
+
+    use strict;
+    use warnings;
+    
+という毎回書かなくてはいけない記述は自動的に行ってくれます。
+
 =head2 2-2. オブジェクトの作成
 
 作成したクラスは,普通のクラスと同じように使用することができます。
@@ -161,7 +168,7 @@ auto_build オプションを指定すると、アクセッサが呼ばれたと
 
 2回目移行のフィールドへのアクセスは、ビルダーメソッドによって設定された値が使用されます。
 
-=head2 3-3. フィールドの制約 constrain
+=head2 3-3-1. フィールドの制約 constrain
 
 フィールドに制約を持たせたい場合があります。
 数値だけを受け入れたかったり、特定のクラスのオブジェクトだけを受け入れたかったりする場合です。
@@ -188,7 +195,7 @@ priceに設定できるのは整数値だけといったように、フィール
 
     Book::price must be integer.( this value is bad ) at b.pl line 6
 
-=head2 3-4. 制約違反にに対する例外処理
+=head2 3-3-2. 制約違反にに対する例外処理
 
 Simoはフィールドに制約違反が起こったときに例外を投げます。
 この例外は単なる文字列ではなくて、L<Simo::Error>オブジェクトです。
@@ -229,4 +236,677 @@ Simoはフィールドに制約違反が起こったときに例外を投げま�
 
 エラーオブジェクトについては L<Simo::Error> も参照してください。
 
+=head2 3-3-3 独自の制約関数の実装
+
+もし独自に制約関数を実装したいならば可能です。
+Simoの制約関数と同じ作成方法で、制約関数を作成すれば非常に調和の取れたものになります。
+
+L<Simo::Constrain>のis_define関数の実装を例として掲載しておきます。
+
+    sub is_defined(;$){
+        my $val = shift || $_;
+        defined($val) or $@ = "must be defined.( undef is bad )", return 0;
+        return 1;
+    }
+
+制約関数は、引数があればそれを使用し、なければデフォルト変数 $_ を使用するようにします。
+このように記述すれば、
+
+    sub title{ ac constrain => sub{ is_defined } }
+
+のように引数を省略した記述が可能になります。
+
+制約を満たさなかった場合は、$@ にメッセージを設定して、偽値を返却してください。
+このメッセージはエラーメッセージとして使用されます。
+
+制約を満たした場合は、真値を返却してください。
+
+=head2 3-3-4 複数の制約を記述する方法
+
+もし複数の制約を記述したい場合は2つの方法があります。
+
+ひとつめは、無名サブルーチンとして実装することです。
+以下の例はBookクラスとCloneableクラスを継承していることを保障する例です。
+
+    sub title{ ac constain => sub{ isa Book && isa Cloneable } }
+
+もうひとつは、配列のリファレンスに複数の制約関数を渡す方法です。
+
+    sub title{ ac constrain => [ \&is_xxx, \&is_yyy, \&is_zzz ] }
+
+=head2 3-4-1. フィールド値のフィルター filter
+
+もし、設定される値に何らかの処理を施したいのならfilterを使用してください。
+
+以下の例では設定される値を大文字にします。
+
+    package Book;
+    use Simo;
+    
+    sub title{ ac filter => sub{ uc } }
+
+もうひとつ末尾のスラッシュを取り除く例を書いておきます。
+
+    package Book;
+    use Simo;
+    
+    sub dir{ ac filter => \&remove_last_slash }
+    
+    sub remove_last_slash{
+        my $val = shift;
+        $val =~ s#/$##;
+        return $val;
+    }
+
+フィルタのための関数を作る場合は、フィルタ後の値をreturnで返却するようにしてください。
+
+=head2 3-4-2 複数の値のフィルタ
+
+フィルタも制約と同じように複数並べることができます。
+
+    sub title{ ac filter => [ \&filter_xxx, \&fitler_yyy, \&filter_zzz ] }
+
+=head2 3-5-1 値が設定された場合のトリガ trigger
+
+トリガとはSimoでは、値が設定された場合に実行されるメソッドのことをさします。
+
+たとえば、ある値に変更があったら、何らかの処理を実行したい場合にトリガは便利です。
+
+ひとつの例として、GUIでのプログラミングで、
+色の値が変更されたら再描画をする関数を呼び出したい場合などが挙げられます。
+
+    package Button;
+    use Simo;
+    
+    sub color{ ac trigger => \&paint }
+    sub paint{
+        # 再描画の処理
+    }
+
+=head2 3-5-2 複数のトリガ
+
+トリガも、制約やフィルタと同じように複数ならべることができます。
+
+    sub coloer{ ac tirgger => [ \&trigger_xxx, \&trigger_yyy, \&trigger_zzz ]
+
+=head2 3-6 読み取り専用のアクセッサ read_only
+
+読み取り専用のアクセッサを作成するには、read_onlyを使用します。
+
+    package Book;
+    use Simo;
+    
+    sub title{ ac default => 'Good news', read_only => 1 }
+
+読み取り専用のアクセッサは、値が設定されようとしたときに、例外を発生させます。
+
+一般的には、default と組み合わせて使用します。
+
+=head2 3-6 ハッシュとしての解釈を強制する。hash_force
+
+Simoには、アクセッサに設定される値は必ずスカラーです。また取得する場合も必ずスカラーになります。
+
+配列を設定することやハッシュを設定することはできません。
+
+アクセッサに配列が渡された場合はどうなるでしょうか?
+
+    my $book = Book->new;
+    $book->author( 'Kimoto', 'Kenta', 'Mori' );
+
+このような場合は、強制的に配列のリファレンスへと変換されます。
+
+つまり、設定される段階では、
+
+    [ 'Kimoto', 'Kenta', 'Mori' ]
+    
+になります。
+
+たとえ
+
+    $book->author( main => 'Kimoto', sub => 'Kenta' );
+
+のようにハッシュを設定するように意図していたとしても
+
+    { main => 'Kimoto', sub => 'Kenta' }
+
+ではなく
+
+    [ 'main', 'Kimoto', 'sub', 'Kenta' ]
+
+のように変換されます。
+
+そこでハッシュとして解釈してほしい場合は以下のようにhash_forceを使用します。
+
+    package Book;
+    use Simo;
+    
+    sub author{ ac hash_force => 1 }
+
 =cut
+
+=head1 4.継承
+
+=head2 4-1 継承 base
+
+Simoで継承を行うには以下のようにします。
+Bookというクラスを継承して、Magazineというクラスを作成する例です。
+
+    package Magazine;
+    use Simo( base => 'Book' );
+
+base モジュールを使うのではないことに注意してください。
+内部的にはbase モジュールを呼んでいるのですが、継承の順序を保障するためにこの記述を行ってください。
+
+=head2 4-2 ミックスイン mixin
+
+Simoは記法上でミックスインをサポートします。
+
+以下の例は、L<Class::Cloneable>と<Class::Comparable> をミックスインした例です。
+
+    package Book;
+    use Simo( mixin => [ 'Class::Cloneable', 'Class::Comparable' ] );
+
+Simoのミックスインは、何も特別なことはしません。Simoのミックスインは単なる多重継承です。
+
+けれども、クラスを作った人は、多重継承を意図したものではなく、ミックスインを意図したものだ
+ということを伝えることができます。
+
+つまり、これらのクラスはコンストラクタを持たず、何か実装すべきメソッドがあるかもしれないという
+ことを使用者に感じさせることができます。
+
+=head2 4-3 オーバーライド可能なコンストラクタの実装 new
+
+少し高度な話題です。読み飛ばしてもかまいません。
+
+もしかしたら時にオーバーライド可能なコンストラクタを実装したくなる場合があるかもしれません。
+
+これが、どのような場合を想定しているかといえば、Simoで作成されていないクラスを継承したい場合です。
+
+一例を挙げましょう。L<CGI::Application> を継承して新しいクラスを作りたいとします。
+
+    use MyApp;
+    use Simo( base => 'CGI::Application' );
+    
+    sub app_name{ ac }
+
+このようにクラスを作成した場合、問題になるのは、app_nameの初期化ができないということです。
+
+newに呼ばれるコンストラクタは、CGI::Applicationのものであり、Simoのものではありません。
+
+    my $myapp = MyApp->new( app_name => 'YHA' );
+    
+のように記述することができないのです。
+
+初期化を実行するためには、親のコンストラクタを実行してオブジェクトを生成してから、
+そのオブジェクトにapp_nameを加える必要があります。
+
+CGI::Applicationのコンストラクタでは、TMPL_PATH, PARAMS, QUERY を初期化することができます。
+Simoのコンストラクタでは、app_nameを初期化することができます。
+
+この合体を行うのは非常に面倒です。Simoは、この苦労をできるだけ取り除くために、
+new_self_and_parentというメソッドを持っています。
+
+親のコンストラクタを実行しながら、Simoのコンストラクタを実行するには、以下のようにします。
+
+    package MyApp;
+    use Simo( base => 'CGI::Application' );
+    
+    sub new{
+        my $self = shift->new_self_and_parent( @_, [ 'TMPL_PATH', 'PARAMS', 'QUERY' ] );
+        return $self;
+    }
+
+new_self_and_parent の第2引数には、親のコンストラクタの初期化パラメータを配列のリファレンスで指定します。
+
+こう記述すれば、
+
+    my $myapp = MyApp->new( app_name => 'YHA', TMPL_PATH => 'xxx', PARAMS => {} QUERY => CGI->new );
+    
+のように、親のコンストラクタとSimoのコンストラクタを同時に実行することが可能です。
+
+そして、あなたは、CGI::Application用のコンストラクタとして、もう少し便利なものを提供できるかもしれません。
+
+そうなれば、それをコンストラクタのみのクラスにして見ましょう。
+
+    package Simo::New::CGI::Application;
+    
+    sub new{
+        my $self = shift->new_self_and_parent( @_, [ 'TMPL_PATH', 'PARAMS', 'QUERY' ] );
+        
+        # もう少し便利なことを行う。
+        
+        return $self;
+    }
+    
+そしてこのようにして作成したなら、
+
+    package MyApp;
+    use Simo( base => 'CGI::Application', new => 'Simo::New::CGI::Application' );
+
+というふうにnewメソッドをインポートすることができます。これはさらに継承可能であって、
+
+    package MyApp;
+    use Simo( base => 'CGI::Application', new => 'Simo::New::CGI::Application' );
+    
+    sub new{
+        my $self = shift->SUERP::new( @_ );
+        
+        # ユーザが好きなことをする。
+        
+        return $self;
+    }
+    
+のように利用することができます。
+
+ちょっと難しい。
+
+=head2 4-4 newをオーバーライドする。
+
+newのオーバーライドについて書いておきます。
+
+Simoによって自動的に用意されたnewは、オーバーライドすることができます。
+
+これは、L<Class::Accessor>に対する大きな利点です。
+
+また、newをオーバーライドすることを推奨しないL<Moose>やL<Mouse>に対しても大きな利点です。
+
+Perlでオブジェクト指向を学んできた知識をSimoでは自然に利用することができます。
+
+newのオーバーライドの雛形は以下のようになります。
+
+    package Book;
+    use Simo;
+    
+    sub new{
+        my $self = shift->SUERP::new( @_ );
+        
+        # 好きなことをする。
+        
+        return $self;
+    }
+
+=head1 5. その他の機能
+
+=head2 5-1 必要不可欠なフィールド
+
+たとえばtitleとauthorいうフィールドが必要不可欠ならばこう書きます。
+
+REQUIRED_ATTRSというメソッドをオーバーライドしてください。
+
+    package Book;
+    use Simo;
+    
+    sub title{ ac }
+    sub author{ ac }
+    
+    sub REQUIRED_ATTRS{ qw/title author/ }
+
+このように記述すれば、
+
+    my $book = Book->new;
+
+のような記述をしたときに、例外を投げてくれます。
+
+このときのエラーのタイプは
+
+    attr_required
+
+になります。
+
+理想としては、 sub title{ ac required => 1 } という記述をしたかった。
+
+けれども、Simoのアクセッサは必ず遅延で評価されるため、コンストラクタが呼び出された時点では、
+それが、必要不可欠なのかどうかを判定できません。
+
+そのために、REQUIRED_ATTRS をオーバーライドするという解決策をとりました。
+
+スペリングのミスに非常に気をつけてください( 容易に間違えてしまいます。)
+
+=head2 5-2 必要不可欠なフィールドと継承の問題
+
+上記のBookクラスを継承してMagazineというクラスを作成した場合、必要不可欠なフィールドの定義する方法を解説します。
+
+ここで非常に間違いやすいことがあります。title, auhtor, price の3つのフィールドを必要不可欠にするために、
+
+    package Magazine;
+    use Simo( base => 'Book' );
+    
+    sub price{ ac }
+    
+    sub REQUIRED_ATTRS{ 'price' }
+
+と書いてしまっては間違いです。
+
+REQUIRE_ATTRSはオーバーライドされるために、priceだけが必要不可欠なフィールドになってしまいます。
+
+ただしくは、
+
+    sub REQUIRED_ATTRS{ qw/title author price/ }
+
+と書く必要があります。
+
+でもこれって、面倒だよね。
+
+そこで、Simoは簡易な記述を用意しています。
+
+    sub REQUIRED_ATTRS{ 'price', and_super }
+    
+and_super メソッドを呼ぶとスーパークラスのメソッドが呼ばれ、 'title' と 'author' が返却されます。
+
+=head1 6. オブジェクトを便利に利用する Simo::Util の o 関数
+
+これでSimoの機能の一通りの解説が終わりました。
+
+ここまでは、クラスの作り方の解説でした。
+
+実はSimoでは、クラスを作るだけではなく、クラスを使う側にも非常に配慮したつくりになっています。
+
+その根幹を成すのが、 Simo::Util の o 関数( おーかんすう )です。
+
+=head2 6-1. 複数のフィールドに値を設定する。 set_values
+
+複数のフィールドの値を設定するには以下のようにします。
+    
+    use Simo::Util 'o';
+    
+    my $book = Book->new;
+    
+    o($book)->set_values( title => 'Good news', author => 'Kimoto' );
+
+まず、use Simo::Util 'o' で o関数をインポートします。
+
+そして、利用する場合には、 o($book) のようにo関数にオブジェクトを渡します。
+
+そして、そこからメソッドを呼び出します。
+
+これが、o関数の基本的な約束事です。
+
+    o($book)->set_values( title => 'Good new', author => 'Kimoto' );
+
+で、複数のフィールドに値を設定することができます。
+
+ここから先の解説は、
+
+    use Simo::Util 'o';
+    
+    my $book = Book->new;
+
+を先頭に記述したものとして解説します。
+
+=head2 6-2. 複数のフィールドから値を取り出す。 get_values
+
+複数のフィールドから値を取り出すには以下のようにします。
+
+    my ( $title, $auhtor ) = o($book)->get_values( qw/title author/ );
+
+ハッシュスライスのように使用できます。
+
+=head2 6-3 複数のフールドから値をハッシュのリファレンスとして取り出す。 get_hash
+
+複数のフィールドから値をハッシュのリファレンスとして取り出すことができます。
+
+    my $hash = o($book)->get_hash( qw/title author/ );
+    
+得られたハッシュのリファレンスは
+
+    {
+        title => 'xxx',
+        author => 'yyy'
+    }
+
+のようになります。
+
+=head2 6-3. オブジェクトのコピーを作成する。 clone
+
+オブジェクトのコピーを作成するには
+
+    my $book_copy = o($book)->clone
+
+とします。内部的には、L<Storable> の dclone関数が使用されています。
+
+=head2 6-4. オブジェクトをシリアライズまたはデシリアライズする。 freeze, thaw
+
+オブジェクトをシリアライズするには、
+
+    my $book_str = o($book)->freeze;
+
+でシリアライズするには、
+
+    my $book = o->thaw( $book_str );
+    
+とします。
+
+シリアライズというのは、オブジェクトを保存できるように文字列化したものです。
+
+デシリアライズというのは、文字列からオブジェクトへの復元のことです。
+
+内部的には、L<Storable>の freeze関数とthaw関数を使用しています。
+
+=head2 6-4 クラスをロードして、コンストラクタを呼び出す。 new
+
+クラスを自動的にロードしてコンストラクタを呼び出すには、
+
+    my $book = o('Book')->new;
+
+とします。
+
+この記述の便利なところは、
+
+    use Book;
+
+という記述をする必要がないということです。コードの重複を減らすのに役に立ちます。
+
+ほとんどのコンストラクタは、newという名前なのでよいのですが、DBI関連のモジュールの
+コンストラクタは慣習的にconnectです。
+
+このために、connect というコンストラクタも準備されています。
+
+    my $dbh = o('DBI')->connect( # ... );
+
+=head2 6-5 オブジェクトに設定された値が有効かどうかを確認する。 validate
+
+オブジェクトに設定された値が有効化どうかを確認するには、
+
+    $book->validate(
+        title => sub{ length $_ < 100 },
+        price => sub{ $_ > 0 }
+    );
+
+とします。
+
+有効かどうかを確認する関数が偽を返したときは、例外を投げます。
+
+このとき投げられる例外は、 L<Simo::Error> オブジェクトになります。
+
+エラーのタイプは、
+
+    value_invalid
+
+になります。
+
+evalで囲って例外を拾うには、Simo::Utilの err 関数を使います。
+
+    Simo::Util qw( o err );
+    
+    eval{
+        $book->validate(
+            title => sub{ length $_ < 100 },
+            price => sub{ $_ > 0 }
+        );        
+    };
+    
+    if( my $err = err ){
+        if( $err->attr eq 'title' ){
+            
+        }
+        elsif( $er->attr eq 'author' ){
+            
+        }
+        esle{
+            
+        }
+    }
+
+このようにvalidateメソッドとerr関数を使用すると、
+フィールドの値ごとにエラーをチェックすることができます。
+
+=head2 6-6 new して同時に、validateする。 new_and_validate
+
+new と validate を同時に行えると便利な場合があります。
+    
+    my $q; # 外部からやってきた値。
+    
+    my $book = o('Book')->new_and_validate( 
+        title => $q->{ title }, sub{ length $_ < 100 },
+        author => $q->{ author }, sub{ $_ > 0 }
+    );
+
+このようにオブジェクトを生成させながら、値の有効性のチェックが同時にできます。
+
+例外を捕獲するevalを組み合わせて以下のように書くと便利です。
+
+    my $book = eval{
+        o('Book')->new_and_validate( 
+            title => $q->{ title }, sub{ length $_ < 100 },
+            author => $q->{ author }, sub{ $_ > 0 }
+        )
+    };
+
+このメソッドは必ず3組で記述する必要があります。
+
+制限を設けたくない場合は、
+
+    my $book = o('Book')->new_and_validate( 
+        price => $q->{ price }, sub{ 1 }
+    );    
+
+sub{ 1 } を渡します。
+
+また、このメソッドはもうひとつの記法があります。ふたつのハッシュリファレンスを渡す方法です。
+
+    my $book = o('Book')->new_and_validate(
+        {
+            title => $q->{ title },
+            author => $q->{ author },
+        },
+        {
+            title =>  sub{ $_ > 0 },
+            author => sub{ length $_ < 100 }
+        }
+    );
+
+=head2 6-7 メソッドを連続して実行する。 run_methods
+
+メソッドを連続して実行するには、run_methods を使用します。
+
+たとえば、データを選択するような記法を持つメソッドに対して連続的に実行するときに便利です。
+
+このチェーンはメソッドチェーンを意識して作られました。
+
+メソッドチェーンよりも便利な点は、メソッドの実行が構造化されているために、他のデータと連携しやすい点です。
+
+    my $result = o($book_list)->run_methods(
+        find => [ 'author' => 'kimoto' ],
+        sort => [ 'price', 'desc' ],
+        'get_result'
+    );
+
+=head2 6-8 複数のフィールドの値をフィルタする。 filter_values
+
+複数のフィールドの値を別の値に変換したいときは、filter_valuesを使用します。
+
+    o($book)->filter_valuse( sub{ uc }, qw/title, author/ );
+
+このように記述すると、title と author のフィールドの値が大文字に変換されます。
+
+このメソッドのもうひとつの特徴として、フィールドの値が配列だった場合はその値の
+すべてを変換してくるというものがあります。
+
+またフィールドの値がハッシュだった場合に、ハッシュの値のすべてを変換してくれます。
+
+    package Book;
+    use Simo;
+    
+    sub title{ ac default => { main => 'Good nesw', sub => 'yha' } }
+    sub author{ ac default => [ 'Kimoto', 'Taro' ] }
+
+たとえば上記のようなフィールドであった場合は、
+
+    o($book)->filter_values( sub{ uc }, qw/title author/ );
+    
+とすると、配列の全部の値と、ハッシュの全部の値が大文字に変換されます。
+
+=head2 6-9 複数のフィールドの値をエンコード、またはデコードする。 encode_values, decode_values
+
+上記の、filter_values にencode関数, decode関数を適用したものが、用意されています。
+
+    o($book)->encode_values( 'utf8', q/title author/ );
+    
+    o($book)->decode_values( 'utf8', q/title author/ );
+
+のように使用します。
+
+=head2 6-9 XMLからオブジェクトを生成する。 new_from_xml
+
+XMLからオブジェクト生成することもできます。
+
+以下のXMLを見てください。まるでオブジェクトのようなXMLです。
+
+    <?xml version="1.0" encoding='UTF-8' ?>
+    <root __CLASS="Book" >
+      <title>Good man</title>
+      
+      <author __CLASS="Person">
+        <name>Kimoto</name>
+        <age>28</age>
+        <country>Japan</country>
+      </author>
+    </root>
+    
+クラス名の表現に
+
+    __CLASS="Book"
+    
+というものが使われています。
+
+    my $book = o->new_from_xml( $xml );
+
+という記述でこのようなXMLを解析して、オブジェクトを生成することができます。
+
+    $book->author->name;
+
+のように深い階層のオブジェクトも生成され利用できます。
+
+コンストラクタ名がnewではない場合は、
+
+    <root __CLASS="Book" __CLASS_CONSTRUCTOR="create" >
+    </root>
+
+のように、__CLASS__CONSTRUCTOR に コンストラクタ名を指定してください。
+
+=head2 6-10 XMLを元にオブジェクトのフィールド値を設定する。 set_values_from_xml
+
+使い方は、new_from_xml とよく似ています。
+
+Bookオブジェクトは作成されていて、
+下記のようなデータをオブジェクトに設定したい場合などに使用します。
+
+    <?xml version="1.0" encoding='UTF-8' ?>
+    <root>
+      <title>Good man</title>
+      
+      <author __CLASS="Person">
+        <name>Kimoto</name>
+        <age>28</age>
+        <country>Japan</country>
+      </author>
+    </root>
+
+以下がサンプルです。
+
+    my $book = Book->new;
+    o($book)->set_values_from_xml( $xml );
+
+=head1 7. 最後に
+
+最後まで読んでくれてありがとうございます。
