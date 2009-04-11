@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.1007';
+our $VERSION = '0.1008';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -268,13 +268,8 @@ sub _SIMO_create_accessor{
             unless $pkg->can( "build_$attr" );
         
         $e .=
-        qq/    if(  ! \$ac_opt->{ called_from_build_method } && ! exists( \$self->{ $attr } ) ){\n/ .
-        qq/        \$ac_opt->{ called_from_build_method } = 1;\n/ .
+        qq/    if( !\@vals && ! exists( \$self->{ $attr } ) ){\n/ .
         qq/        \$self->build_$attr;\n/ .
-        qq/        \$ac_opt->{ called_from_build_method } = 0;\n/ .
-        qq/    }\n/ .
-        qq/    else{\n/ .
-        qq/        \$ac_opt->{ called_from_build_method } = 0;\n/ .
         qq/    }\n/ .
         qq/    \n/;
     }
@@ -547,7 +542,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1007
+Version 0.1008
 
 =cut
 
