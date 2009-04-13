@@ -6,11 +6,80 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.1008';
+our $VERSION = '0.1101';
+
+CHECK {
+    Simo->REGIST_ATTRS();
+}
+
+sub REGIST_ATTRS{
+    my $self = shift;
+    
+    my %code_cache;
+
+    foreach ( @Simo::ATTRIBUTES_CASHE ) {
+        my ($pkg, $ref ) = @$_;
+        unless ($code_cache{$pkg}) {
+
+            $code_cache{$pkg} = {};
+            
+            no strict 'refs';
+            foreach my $sym ( values %{"${pkg}::"} ) {
+
+                next unless ref(*{$sym}{CODE}) eq 'CODE';
+
+                $code_cache{$pkg}->{*{$sym}{CODE}} = *{$sym}{NAME};
+            }
+        }
+        
+        unless( $Simo::ATTRS{ $pkg } ){
+            $Simo::ATTRS{ $pkg } = [];
+        }
+        
+        my $accessor = $code_cache{ $pkg }->{ $ref };
+        push @{ $Simo::ATTRS{ $pkg } }, $accessor;
+        
+        no strict 'refs';
+        $pkg->$accessor;
+    }
+    
+    my $e = '';
+    foreach my $pkg ( keys %Simo::ATTRS ){
+        unless( exists &{"${pkg}::ATTRS"} ){
+            $e .=
+            qq/package ${pkg};\n/ .
+            qq/sub ATTRS{\n/ .
+            qq/    my \$self = shift;\n/ .
+            qq/    my \@super_attrs = eval{ \$self->SUPER::ATTRS };\n/ .
+            qq/    \@super_attrs = () if \$@;\n/ .
+            qq/    return ( \@{ \$Simo::ATTRS{ '${pkg}' } }, \@super_attrs );\n/ .
+            qq/    package Simo;\n/ .
+            qq/}\n/;
+        }
+    }
+    eval $e;
+    if( $@ ){ die "Cannot execute\n $e" }; # never occured.        
+    
+    @Simo::ATTRIBUTES_CASHE = ();
+}
+
+sub ATTRS{
+    my $self = shift;
+    if( @Simo::ATTRIBUTES_CASHE ){
+        Simo->REGIST_ATTRS();
+        $self->ATTRS;
+    }
+    else{
+        return ();
+    } 
+}
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
     my ( $self, @opts ) = @_;
+    
+    return unless $self eq 'Simo';
+    
     @opts = %{ $opts[0] } if ref $opts[0] eq 'HASH';
     
     # import option
@@ -34,10 +103,13 @@ sub import{
     # 1.base class,  2.Simo,  3.mixin class
     
     _SIMO_inherit_classes( $caller_pkg, @{ $import_opt }{ qw( base new mixin ) } );
-
+    
     # auto strict and warnings
     strict->import;
     warnings->import;
+    
+    # define MODIFY_CODE_ATTRIBUTES for caller package
+    _SIMO_define_attributes_handler( $caller_pkg );
 }
 
 # callar package inherit some classes
@@ -71,6 +143,27 @@ sub _SIMO_inherit_classes{
          "use base \@classes;";
     if( $@ ){ $@ =~ s/\s+at .+$//; croak $@ }
 }
+
+sub _SIMO_define_attributes_handler{
+    my $caller_pkg = shift;
+    my $e .=
+        qq/package ${caller_pkg};\n/ .
+        qq/sub MODIFY_CODE_ATTRIBUTES {\n/ .
+        qq/\n/ .
+        qq/    my (\$pkg, \$ref, \@attrs) = \@_;\n/ .
+        qq/    if( \$attrs[0] eq 'Attr' ){\n/ .
+        qq/        push( \@Simo::ATTRIBUTES_CASHE, [\$pkg, \$ref ]);\n/ .
+        qq/    }\n/ .
+        qq/    else{\n/ .
+        qq/        warn "'\$attrs[0]' is bad. attribute must be 'Attr'";\n/ .
+        qq/    }\n/ .
+        qq/    return;\n/ .
+        qq/}\n/;
+    
+    eval $e;
+    if( $@ ){ die "Cannot execute\n $e" }; # never occured.
+}
+
 
 sub new{
     my ( $proto, @args ) = @_;
@@ -172,6 +265,9 @@ sub REQUIRED_ATTRS{ () }
 sub ac(@){
     # Simo process
     my ( $self, $attr, @vals ) = _SIMO_process( @_ );
+    
+    # called by package
+    return unless ref( $self );
     
     # call accessor
     $self->$attr( @vals );
@@ -542,7 +638,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1008
+Version 0.1101
 
 =cut
 
@@ -701,6 +797,26 @@ You can define required attribute.
     sub price{ ac }
     
     sub REQUIRED_ATTRS{ qw( title author ) }
+
+=cut
+
+=head2 ATTRS
+
+is attribute list. If you specify attribute 'Attr', This is automatically set.
+
+    package Book;
+    use Simo;
+    
+    sub title : attr { ac }
+    sub author : attr { ac }
+
+ATTRS is ( 'Title', 'Author' )
+
+=cut
+
+=head2 REGIST_ATTRS
+
+If you load module dinamically, Please call this medhos.
 
 =cut
 
