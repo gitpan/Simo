@@ -21,12 +21,23 @@ use Test::More 'no_plan';
         "sub iii : Attr{ ac };";
     is_deeply( [ sort Data::Paper->ATTRS ], [ sort ( qw/aaa iii/ ) ], 'attr list dinamically extend' );
 
-     eval"package Data::Mop;" .
+    eval"package Data::Mop;" .
         "use Simo;" .
         "sub aaa { ac };" .
         "sub iii { ac };";
     is_deeply( [ sort Data::Mop->ATTRS ], [], 'attr list no regist extend' );
-   
+    
+    eval"package Data::Cap;" .
+        "use Simo;" .
+        "sub aaa : Attr { ac };" .
+        "sub iii : Attr { ac };";
+        
+    eval"package Data::Yap;" .
+        "use Simo;" .
+        "sub aaa  { ac };" .
+        "sub iii  { ac };";
+    is_deeply( [ sort Data::Yap->ATTRS ], [], 'attr list no regist extend' );
+    is_deeply( [ sort Data::Cap->ATTRS ], [ sort ( qw/aaa iii/ )], 'attr list no regist extend' );
 }
 
 package Data::Book;

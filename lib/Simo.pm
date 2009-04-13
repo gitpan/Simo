@@ -6,7 +6,7 @@ use warnings;
 use Carp;
 use Simo::Error;
 
-our $VERSION = '0.1101';
+our $VERSION = '0.1102';
 
 CHECK {
     Simo->REGIST_ATTRS();
@@ -16,7 +16,8 @@ sub REGIST_ATTRS{
     my $self = shift;
     
     my %code_cache;
-
+    my %pkg_registed;
+    
     foreach ( @Simo::ATTRIBUTES_CASHE ) {
         my ($pkg, $ref ) = @$_;
         unless ($code_cache{$pkg}) {
@@ -38,6 +39,7 @@ sub REGIST_ATTRS{
         
         my $accessor = $code_cache{ $pkg }->{ $ref };
         push @{ $Simo::ATTRS{ $pkg } }, $accessor;
+        $pkg_registed{ $pkg }++;
         
         no strict 'refs';
         $pkg->$accessor;
@@ -61,13 +63,21 @@ sub REGIST_ATTRS{
     if( $@ ){ die "Cannot execute\n $e" }; # never occured.        
     
     @Simo::ATTRIBUTES_CASHE = ();
+    
+    return %pkg_registed;
 }
 
 sub ATTRS{
     my $self = shift;
     if( @Simo::ATTRIBUTES_CASHE ){
-        Simo->REGIST_ATTRS();
-        $self->ATTRS;
+        my %pkg_registed = Simo->REGIST_ATTRS();
+        
+        if( $pkg_registed{ ref $self || $self } ){
+            return $self->ATTRS;
+        }
+        else{
+            return ();
+        }
     }
     else{
         return ();
@@ -638,7 +648,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1101
+Version 0.1102
 
 =cut
 
