@@ -593,15 +593,13 @@ REQUIRE_ATTRSはオーバーライドされるために、priceだけが必要�
     
 and_super メソッドを呼ぶとスーパークラスのメソッドが呼ばれ、 'title' と 'author' が返却されます。
 
-=head1 6. オブジェクトを便利に利用する Simo::Util の o 関数
+=head1 6. オブジェクトを便利に操作する
 
 これでSimoの機能の一通りの解説が終わりました。
 
 ここまでは、クラスの作り方の解説でした。
 
-実はSimoでは、クラスを作るだけではなく、クラスを使う側にも非常に配慮したつくりになっています。
-
-その根幹を成すのが、 Simo::Util の o 関数( おーかんすう )です。
+実はSimoでは、クラスを作るだけではなく、オブジェクトを使う側にも配慮したつくりになっています。
 
 =head2 6-1. 複数のフィールドに値を設定する。 set_values
 
@@ -611,33 +609,15 @@ and_super メソッドを呼ぶとスーパークラスのメソッドが呼ば�
     
     my $book = Book->new;
     
-    o($book)->set_values( title => 'Good news', author => 'Kimoto' );
-
-まず、use Simo::Util 'o' で o関数をインポートします。
-
-そして、利用する場合には、 o($book) のようにo関数にオブジェクトを渡します。
-
-そして、そこからメソッドを呼び出します。
-
-これが、o関数の基本的な約束事です。
-
-    o($book)->set_values( title => 'Good new', author => 'Kimoto' );
+    $book->set_values( title => 'Good news', author => 'Kimoto' );
 
 で、複数のフィールドに値を設定することができます。
-
-ここから先の解説は、
-
-    use Simo::Util 'o';
-    
-    my $book = Book->new;
-
-を先頭に記述したものとして解説します。
 
 =head2 6-2. 複数のフィールドから値を取り出す。 get_values
 
 複数のフィールドから値を取り出すには以下のようにします。
 
-    my ( $title, $auhtor ) = o($book)->get_values( qw/title author/ );
+    my ( $title, $auhtor ) = $book->get_values( qw/title author/ );
 
 ハッシュスライスのように使用できます。
 
@@ -645,7 +625,7 @@ and_super メソッドを呼ぶとスーパークラスのメソッドが呼ば�
 
 複数のフィールドから値をハッシュのリファレンスとして取り出すことができます。
 
-    my $hash = o($book)->get_hash( qw/title author/ );
+    my $hash = $book->get_hash( qw/title author/ );
     
 得られたハッシュのリファレンスは
 
@@ -660,7 +640,7 @@ and_super メソッドを呼ぶとスーパークラスのメソッドが呼ば�
 
 オブジェクトのコピーを作成するには
 
-    my $book_copy = o($book)->clone
+    my $book_copy = $book->clone
 
 とします。内部的には、L<Storable> の dclone関数が使用されています。
 
@@ -668,11 +648,11 @@ and_super メソッドを呼ぶとスーパークラスのメソッドが呼ば�
 
 オブジェクトをシリアライズするには、
 
-    my $book_str = o($book)->freeze;
+    my $book_str = $book->freeze;
 
 でシリアライズするには、
 
-    my $book = o->thaw( $book_str );
+    my $book = Simo->thaw( $book_str );
     
 とします。
 
@@ -681,27 +661,6 @@ and_super メソッドを呼ぶとスーパークラスのメソッドが呼ば�
 デシリアライズというのは、文字列からオブジェクトへの復元のことです。
 
 内部的には、L<Storable>の freeze関数とthaw関数を使用しています。
-
-=head2 6-4 クラスをロードして、コンストラクタを呼び出す。 new
-
-クラスを自動的にロードしてコンストラクタを呼び出すには、
-
-    my $book = o('Book')->new;
-
-とします。
-
-この記述の便利なところは、
-
-    use Book;
-
-という記述をする必要がないということです。コードの重複を減らすのに役に立ちます。
-
-ほとんどのコンストラクタは、newという名前なのでよいのですが、DBI関連のモジュールの
-コンストラクタは慣習的にconnectです。
-
-このために、connect というコンストラクタも準備されています。
-
-    my $dbh = o('DBI')->connect( # ... );
 
 =head2 6-5 オブジェクトに設定された値が有効かどうかを確認する。 validate
 
@@ -756,7 +715,7 @@ new と validate を同時に行えると便利な場合があります。
     
     my $q; # 外部からやってきた値。
     
-    my $book = o('Book')->new_and_validate( 
+    my $book = Book->new_and_validate( 
         title => $q->{ title }, sub{ length $_ < 100 },
         author => $q->{ author }, sub{ $_ > 0 }
     );
@@ -766,7 +725,7 @@ new と validate を同時に行えると便利な場合があります。
 例外を捕獲するevalを組み合わせて以下のように書くと便利です。
 
     my $book = eval{
-        o('Book')->new_and_validate( 
+        Book->new_and_validate( 
             title => $q->{ title }, sub{ length $_ < 100 },
             author => $q->{ author }, sub{ $_ > 0 }
         )
@@ -776,7 +735,7 @@ new と validate を同時に行えると便利な場合があります。
 
 制限を設けたくない場合は、
 
-    my $book = o('Book')->new_and_validate( 
+    my $book = Book->new_and_validate( 
         price => $q->{ price }, sub{ 1 }
     );    
 
@@ -784,7 +743,7 @@ sub{ 1 } を渡します。
 
 また、このメソッドはもうひとつの記法があります。ふたつのハッシュリファレンスを渡す方法です。
 
-    my $book = o('Book')->new_and_validate(
+    my $book = Book->new_and_validate(
         {
             title => $q->{ title },
             author => $q->{ author },
@@ -805,7 +764,7 @@ sub{ 1 } を渡します。
 
 メソッドチェーンよりも便利な点は、メソッドの実行が構造化されているために、他のデータと連携しやすい点です。
 
-    my $result = o($book_list)->run_methods(
+    my $result = $book_list->run_methods(
         find => [ 'author' => 'kimoto' ],
         sort => [ 'price', 'desc' ],
         'get_result'
@@ -815,7 +774,7 @@ sub{ 1 } を渡します。
 
 複数のフィールドの値を別の値に変換したいときは、filter_valuesを使用します。
 
-    o($book)->filter_valuse( sub{ uc }, qw/title, author/ );
+    $book->filter_valuse( sub{ uc }, qw/title, author/ );
 
 このように記述すると、title と author のフィールドの値が大文字に変換されます。
 
@@ -832,7 +791,7 @@ sub{ 1 } を渡します。
 
 たとえば上記のようなフィールドであった場合は、
 
-    o($book)->filter_values( sub{ uc }, qw/title author/ );
+    $book->filter_values( sub{ uc }, qw/title author/ );
     
 とすると、配列の全部の値と、ハッシュの全部の値が大文字に変換されます。
 
@@ -840,9 +799,9 @@ sub{ 1 } を渡します。
 
 上記の、filter_values にencode関数, decode関数を適用したものが、用意されています。
 
-    o($book)->encode_values( 'utf8', q/title author/ );
+    $book->encode_values( 'utf8', q/title author/ );
     
-    o($book)->decode_values( 'utf8', q/title author/ );
+    $book->decode_values( 'utf8', q/title author/ );
 
 のように使用します。
 
@@ -869,7 +828,7 @@ XMLからオブジェクト生成することもできます。
     
 というものが使われています。
 
-    my $book = o->new_from_xml( $xml );
+    my $book = Simo->new_from_xml( $xml );
 
 という記述でこのようなXMLを解析して、オブジェクトを生成することができます。
 
@@ -905,7 +864,7 @@ Bookオブジェクトは作成されていて、
 以下がサンプルです。
 
     my $book = Book->new;
-    o($book)->set_values_from_xml( $xml );
+    $book->set_values_from_xml( $xml );
 
 =head1 7. 最後に
 

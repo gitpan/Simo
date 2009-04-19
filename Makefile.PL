@@ -8,6 +8,7 @@ WriteMakefile
           'VERSION_FROM' => 'lib/Simo.pm',
           'PREREQ_PM' => {
                            'Test::More' => 0,
+                           'Simo::Util' => '0.0301',
                            'Storable' => 0,
                            'Simo::Error' => '0.0206'
                          }

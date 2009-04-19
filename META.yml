@@ -1,6 +1,6 @@
 ---
 name: Simo
-version: 0.1102
+version: 0.1103
 author:
   - 'Yuki <kimoto.yuki@gmail.com>'
 abstract: Very simple framework for Object Oriented Perl.
@@ -8,6 +8,7 @@ license: perl
 resources:
   license: ~
 requires:
+  Simo::Util: 0.0301
   Storable: 0
 build_requires:
   Simo::Error: 0.0206
@@ -17,7 +18,7 @@ provides:
     file: lib/Simo.pm
   Simo:
     file: lib/Simo.pm
-    version: 0.1102
+    version: 0.1103
 generated_by: Module::Build version 0.31012
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html

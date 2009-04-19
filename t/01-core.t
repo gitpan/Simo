@@ -3,6 +3,13 @@ use Test::More  'no_plan';
 BEGIN{ use_ok( 'Simo' ) }
 can_ok( 'Simo', qw( ac new ) ); 
 
+can_ok( 'Simo', qw( run_methods encode_attrs clone freeze thaw validate
+        new_and_validate new_from_objective_hash new_from_xml
+        get_hash get_values set_values encode_values decode_values
+        filter_values set_values_from_objective_hash
+        set_values_from_xml )
+      );
+      
 package Book;
 use Simo;
 

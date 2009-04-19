@@ -13,6 +13,7 @@ my $builder = Module::Build->new(
     },
     requires => {
         'Storable' => 0,
+        'Simo::Util' => 0.0301
     },
     add_to_cleanup      => [ 'Simo-*' ],
     create_makefile_pl => 'traditional',

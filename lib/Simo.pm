@@ -5,12 +5,13 @@ use warnings;
 
 use Carp;
 use Simo::Error;
+use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
+                   new_and_validate new_from_objective_hash new_from_xml
+                   get_hash get_values set_values encode_values decode_values
+                   filter_values set_values_from_objective_hash
+                   set_values_from_xml );
 
-our $VERSION = '0.1102';
-
-CHECK {
-    Simo->REGIST_ATTRS();
-}
+our $VERSION = '0.1103';
 
 sub REGIST_ATTRS{
     my $self = shift;
@@ -598,57 +599,13 @@ sub set_attrs{
     return $self;
 }
 
-# run methods
-# ( not recommended )
-sub run_methods{
-    carp "'run_methods' is now not recommended. this method will be removed in future 2019/01/01";
-    my ( $self, @method_or_args_list ) = @_;
-    
-    my $method_infos = $self->_SIMO_parse_run_methods_args( @method_or_args_list );
-    while( my $method_info = shift @{ $method_infos } ){
-        my ( $method, $args ) = @{ $method_info }{ qw( name args ) };
-        
-        if( @{ $method_infos } ){
-            $self->$method( @{ $args } );
-        }
-        else{
-            return wantarray ? ( $self->$method( @{ $args } ) ) :
-                                 $self->$method( @{ $args } );
-        }
-    }
-}
-
-# ( not recommended )
-sub _SIMO_parse_run_methods_args{
-    carp "'get_attrs' is now not recommended. this method will be removed in future 2019/01/01";
-    my ( $self, @method_or_args_list ) = @_;
-    
-    my $method_infos = [];
-    while( my $method_or_args = shift @method_or_args_list ){
-        croak "$method_or_args is bad. Method name must be string and args must be array ref"
-            if ref $method_or_args;
-        
-        my $method = $method_or_args;
-        croak "$method is not exist" unless $self->can( $method );
-        
-        my $method_info = {};
-        $method_info->{ name } = $method;
-        $method_info->{ args } = ref $method_or_args_list[0] eq 'ARRAY' ?
-                                 shift @method_or_args_list :
-                                 [];
-        
-        push @{ $method_infos }, $method_info;
-    }
-    return $method_infos;
-}
-
 =head1 NAME
 
 Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1102
+Version 0.1103
 
 =cut
 
