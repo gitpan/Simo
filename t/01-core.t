@@ -438,3 +438,16 @@ package main;
     like( $@, qr/'build_a3' must exist in 'T4' or parent when 'auto_build' option is set/, 'no build method' );
 }
 
+package T5;
+use Simo;
+
+sub title{ accessor default => 5 }
+
+package main;
+
+{
+    my $o = T5->new;
+    is( $o->title, 5, 'accessor' );
+}
+
+

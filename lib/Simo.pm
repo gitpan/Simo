@@ -11,79 +11,7 @@ use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
                    filter_values set_values_from_objective_hash
                    set_values_from_xml );
 
-our $VERSION = '0.1103';
-
-sub REGIST_ATTRS{
-    my $self = shift;
-    
-    my %code_cache;
-    my %pkg_registed;
-    
-    foreach ( @Simo::ATTRIBUTES_CASHE ) {
-        my ($pkg, $ref ) = @$_;
-        unless ($code_cache{$pkg}) {
-
-            $code_cache{$pkg} = {};
-            
-            no strict 'refs';
-            foreach my $sym ( values %{"${pkg}::"} ) {
-
-                next unless ref(*{$sym}{CODE}) eq 'CODE';
-
-                $code_cache{$pkg}->{*{$sym}{CODE}} = *{$sym}{NAME};
-            }
-        }
-        
-        unless( $Simo::ATTRS{ $pkg } ){
-            $Simo::ATTRS{ $pkg } = [];
-        }
-        
-        my $accessor = $code_cache{ $pkg }->{ $ref };
-        push @{ $Simo::ATTRS{ $pkg } }, $accessor;
-        $pkg_registed{ $pkg }++;
-        
-        no strict 'refs';
-        $pkg->$accessor;
-    }
-    
-    my $e = '';
-    foreach my $pkg ( keys %Simo::ATTRS ){
-        unless( exists &{"${pkg}::ATTRS"} ){
-            $e .=
-            qq/package ${pkg};\n/ .
-            qq/sub ATTRS{\n/ .
-            qq/    my \$self = shift;\n/ .
-            qq/    my \@super_attrs = eval{ \$self->SUPER::ATTRS };\n/ .
-            qq/    \@super_attrs = () if \$@;\n/ .
-            qq/    return ( \@{ \$Simo::ATTRS{ '${pkg}' } }, \@super_attrs );\n/ .
-            qq/    package Simo;\n/ .
-            qq/}\n/;
-        }
-    }
-    eval $e;
-    if( $@ ){ die "Cannot execute\n $e" }; # never occured.        
-    
-    @Simo::ATTRIBUTES_CASHE = ();
-    
-    return %pkg_registed;
-}
-
-sub ATTRS{
-    my $self = shift;
-    if( @Simo::ATTRIBUTES_CASHE ){
-        my %pkg_registed = Simo->REGIST_ATTRS();
-        
-        if( $pkg_registed{ ref $self || $self } ){
-            return $self->ATTRS;
-        }
-        else{
-            return ();
-        }
-    }
-    else{
-        return ();
-    } 
-}
+our $VERSION = '0.1104';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -106,6 +34,7 @@ sub import{
     {
         # export function
         no strict 'refs';
+        *{ "${caller_pkg}::accessor" } = \&Simo::ac;
         *{ "${caller_pkg}::ac" } = \&Simo::ac;
         *{ "${caller_pkg}::and_super" } = \&Simo::and_super;
     }
@@ -542,11 +471,84 @@ sub _SIMO_get_ac_info {
     return ( $self, $attr, $pkg, @vals );
 }
 
+# resist attribute specified by Attr
+sub REGIST_ATTRS{
+    my $self = shift;
+    
+    my %code_cache;
+    my %pkg_registed;
+    
+    foreach ( @Simo::ATTRIBUTES_CASHE ) {
+        my ($pkg, $ref ) = @$_;
+        unless ($code_cache{$pkg}) {
+
+            $code_cache{$pkg} = {};
+            
+            no strict 'refs';
+            foreach my $sym ( values %{"${pkg}::"} ) {
+
+                next unless ref(*{$sym}{CODE}) eq 'CODE';
+
+                $code_cache{$pkg}->{*{$sym}{CODE}} = *{$sym}{NAME};
+            }
+        }
+        
+        unless( $Simo::ATTRS{ $pkg } ){
+            $Simo::ATTRS{ $pkg } = [];
+        }
+        
+        my $accessor = $code_cache{ $pkg }->{ $ref };
+        push @{ $Simo::ATTRS{ $pkg } }, $accessor;
+        $pkg_registed{ $pkg }++;
+        
+        no strict 'refs';
+        $pkg->$accessor;
+    }
+    
+    my $e = '';
+    foreach my $pkg ( keys %Simo::ATTRS ){
+        unless( exists &{"${pkg}::ATTRS"} ){
+            $e .=
+            qq/package ${pkg};\n/ .
+            qq/sub ATTRS{\n/ .
+            qq/    my \$self = shift;\n/ .
+            qq/    my \@super_attrs = eval{ \$self->SUPER::ATTRS };\n/ .
+            qq/    \@super_attrs = () if \$@;\n/ .
+            qq/    return ( \@{ \$Simo::ATTRS{ '${pkg}' } }, \@super_attrs );\n/ .
+            qq/    package Simo;\n/ .
+            qq/}\n/;
+        }
+    }
+    eval $e;
+    if( $@ ){ die "Cannot execute\n $e" }; # never occured.        
+    
+    @Simo::ATTRIBUTES_CASHE = ();
+    
+    return %pkg_registed;
+}
+
+# get attribute list
+sub ATTRS{
+    my $self = shift;
+    if( @Simo::ATTRIBUTES_CASHE ){
+        my %pkg_registed = Simo->REGIST_ATTRS();
+        
+        if( $pkg_registed{ ref $self || $self } ){
+            return $self->ATTRS;
+        }
+        else{
+            return ();
+        }
+    }
+    else{
+        return ();
+    } 
+}
+
+
 ###---------------------------------------------------------------------------
 # The following methods is not recommended function 
-# These method is not essential as nature of object.
-# To provide the same fanctionality, I create Simo::Wrapper.
-# See Also Simo::Wrapper
+# These method is not essential as nature of Simo object.
 # These methods will be removed in future 2019/01/01
 ###---------------------------------------------------------------------------
 
@@ -605,7 +607,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1103
+Version 0.1104
 
 =cut
 
@@ -646,9 +648,18 @@ writing new methods and accessors repeatedly.
     package Book;
     use Simo;
     
+    sub title{ accessor }
+    sub author{ accessor }
+    sub price{ accessor }
+    
+    # Or ( ac is sintax sugar of accessor )
+    package Book;
+    use Simo;
+    
     sub title{ ac }
     sub author{ ac }
-    sub price{ ac }
+    sub price{ ac }    
+    
     
     # Using class
     use Book;
@@ -714,9 +725,22 @@ If you are Japanese, See also L<Simo::Manual::Japanese>.
 
 =head1 FUNCTIONS
 
+=head2 accessor
+
+is used to define accessor.
+
+    package Book;
+    use Simo;
+    
+    sub title{ accessor }
+    sub author{ accessor }
+    sub price{ accessor }
+
+accessor is exported.
+
 =head2 ac
 
-ac is exported. This is used to define accessor.
+ac is sintax sugar of accessor
 
     package Book;
     use Simo;
