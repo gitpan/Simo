@@ -11,7 +11,7 @@ use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
                    filter_values set_values_from_objective_hash
                    set_values_from_xml );
 
-our $VERSION = '0.1105';
+our $VERSION = '0.1106';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -518,13 +518,13 @@ sub REGIST_ATTRS{
             qq/    my \$self = shift;\n/ .
             qq/    my \@super_attrs = eval{ \$self->SUPER::ATTRS };\n/ .
             qq/    \@super_attrs = () if \$@;\n/ .
-            qq/    return ( \@{ \$Simo::ATTRS{ '${pkg}' } }, \@super_attrs );\n/ .
-            qq/    package Simo;\n/ .
+            qq/    my \%attrs = map{ \$_ => 1 } \@{ \$Simo::ATTRS{ '${pkg}' } }, \@super_attrs;\n/ .
+            qq/    return ( keys \%attrs );\n/ .
             qq/}\n/;
         }
     }
     eval $e;
-    if( $@ ){ die "Cannot execute\n $e" }; # never occured.        
+    if( $@ ){ die "Cannot execute\n$@\n$e" }; # never occured.        
     
     @Simo::ATTRIBUTES_CASHE = ();
     
@@ -611,7 +611,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1105
+Version 0.1106
 
 =cut
 

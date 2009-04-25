@@ -1,3 +1,5 @@
+0.1106
+    bag fix. ATTRS return attr list which is not dupulicate.
 0.1105
     auto_build option can set subroutine reference
 0.1104
