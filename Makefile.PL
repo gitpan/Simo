@@ -10,7 +10,8 @@ WriteMakefile
                            'Test::More' => 0,
                            'Simo::Util' => '0.0301',
                            'Storable' => 0,
-                           'Simo::Error' => '0.0206'
+                           'Simo::Error' => '0.0207',
+                           'Simo::Constrain' => '0.0201'
                          }
         )
 ;

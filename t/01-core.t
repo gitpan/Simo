@@ -450,4 +450,44 @@ package main;
     is( $o->title, 5, 'accessor' );
 }
 
+package T6;
+use Simo;
+
+sub build_m1{ ac auto_build => 1 }
+sub build_build_m1{
+    shift->build_m1( 1 );
+}
+
+package main;
+
+{
+    my $o = T6->new;
+    is( $o->build_m1, 1, 'first build accessor' );
+}
+
+package T7;
+use Simo;
+
+sub a1{ ac auto_build => \&m1 }
+
+sub m1{
+    shift->a1( 1 );
+}
+
+sub a2{ ac 
+    auto_build => sub{
+        shift->a2( 2 ) 
+    }, 
+}
+
+package main;
+
+{
+    my $o = T7->new;
+    is( $o->a1, 1, 'auto_build pass method ref' );
+    is( $o->a2, 2, 'auto_build pass anonimous sub' );
+}
+
+
+
 

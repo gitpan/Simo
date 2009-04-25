@@ -4,10 +4,6 @@
 
 Simo::Manual::Japanese - 日本語で書かれたSimoのマニュアル
 
-=head1 注意
-
-この記事は書きかけです。
-
 =head1 1. Simoとは
 
 SimoはPerlのオブジェクト指向を簡単にするモジュールです。
@@ -50,31 +46,21 @@ Windows環境でインストールしたい場合は、先に nmake をインス
 
 =cut
 
-=head2 1-2. Simo関連モジュールのインストール
+=head2 1-2. Simo関連モジュール
 
 Simoに関連するモジュールがいくつかあります。
 これらのモジュールはオブジェクト指向を簡潔にすることを手助けしてくれます。
+Simoをインスールすると自動的にインストールされます。
 
 =over 4
 
-=item 1. Simo::Wrapper - オブジェクトの操作を便利にします。
+=item 1. Simo::Error - エラーオブジェクトのためのモジュールです。
 
-=item 2. Simo::Error - エラーオブジェクトを生成します。
+=item 2. Simo::Util - オブジェクトの操作を便利にします。
 
-=item 3. Simo::Util - オブジェクトの操作を便利にします。
-
-=item 4. Simo::Constrain - フィールドに設定される値を制約します。
+=item 3. Simo::Constrain - フィールドに設定される値を制約する関数を提供します。
 
 =back
-
-Simoのみのインストールでもクラスの作成は行うことができますが、
-これらのモジュールも一緒にインストールしておくとさらに便利です。
-
-これらのモジュールを一度にインストールするには
-
-    cpan Bundle::Simo
-
-とします。
 
 =head1 2. クラスの作成とその使用方法
 
@@ -167,6 +153,14 @@ auto_build オプションを指定すると、アクセッサが呼ばれたと
 にする必要があります。
 
 2回目移行のフィールドへのアクセスは、ビルダーメソッドによって設定された値が使用されます。
+
+またbuildr_xxxという名前を好まないなら、auto_buildオプションにサブルーチンを指定することもできます。
+
+    sub net_ftp{ ac auto_build => \&create_net_ftp }
+     
+    sub create_net_ftp{
+        # ...
+    }
 
 =head2 3-3-1. フィールドの制約 constrain
 
@@ -593,7 +587,7 @@ REQUIRE_ATTRSはオーバーライドされるために、priceだけが必要�
     
 and_super メソッドを呼ぶとスーパークラスのメソッドが呼ばれ、 'title' と 'author' が返却されます。
 
-=head1 6. オブジェクトを便利に操作する
+=head1 6. オブジェクトの操作
 
 これでSimoの機能の一通りの解説が終わりました。
 
@@ -601,11 +595,32 @@ and_super メソッドを呼ぶとスーパークラスのメソッドが呼ば�
 
 実はSimoでは、クラスを作るだけではなく、オブジェクトを使う側にも配慮したつくりになっています。
 
+Simoは、L<Simo::Util>クラスからオブジェクトを操作するためのメソッドをたくさん取り込んでいます。
+
+Simo::Util クラスで提供される関数は単独で利用することもできますが、デフォルトでSimoを継承したクラス
+から利用できるようになっています。
+
+たとえば以下の2つの記述は同じ意味を持ちます。
+
+1. Simo::Utilクラスの関数として明示的に使う場合。
+
+    use Simo::Util qw( set_values );
+    my $book = Book->new;
+    
+    set_values( $book,  title => 'Good news', author => 'Kimoto' );
+
+2. 暗黙的に利用する場合
+
+    my $book = Book->new;
+    $book->set_values( title => 'Good news', author => 'Kimoto' );
+
+通常は暗黙的に利用することをお勧めします。サブクラスで名前の衝突が起こった場合は、
+明示的にSimo::Utilクラスの関数を呼んでください。
+
+
 =head2 6-1. 複数のフィールドに値を設定する。 set_values
 
 複数のフィールドの値を設定するには以下のようにします。
-    
-    use Simo::Util 'o';
     
     my $book = Book->new;
     
@@ -685,7 +700,7 @@ and_super メソッドを呼ぶとスーパークラスのメソッドが呼ば�
 
 evalで囲って例外を拾うには、Simo::Utilの err 関数を使います。
 
-    Simo::Util qw( o err );
+    Simo::Util qw( err );
     
     eval{
         $book->validate(

@@ -9,11 +9,12 @@ my $builder = Module::Build->new(
     dist_version_from   => 'lib/Simo.pm',
     build_requires => {
         'Test::More' => 0,
-        'Simo::Error' => 0.0206
     },
     requires => {
         'Storable' => 0,
-        'Simo::Util' => 0.0301
+        'Simo::Util' => 0.0301,
+        'Simo::Constrain' => 0.0201,
+        'Simo::Error' => 0.0207
     },
     add_to_cleanup      => [ 'Simo-*' ],
     create_makefile_pl => 'traditional',

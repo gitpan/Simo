@@ -11,7 +11,7 @@ use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
                    filter_values set_values_from_objective_hash
                    set_values_from_xml );
 
-our $VERSION = '0.1104';
+our $VERSION = '0.1105';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -298,14 +298,18 @@ sub _SIMO_create_accessor{
         qq/    \n/;
     }
     
-    if( $ac_opt->{ auto_build } ){
-        # automatically call build method
-        Carp::croak( "'build_$attr' must exist in '$pkg' or parent when 'auto_build' option is set." )
-            unless $pkg->can( "build_$attr" );
+    if( my $auto_build = $ac_opt->{ auto_build } ){
+        unless( ref $auto_build eq 'CODE' ){
+            # automatically call build method
+            Carp::croak( "'build_$attr' must exist in '$pkg' or parent when 'auto_build' option is set." )
+                unless $pkg->can( "build_$attr" );
+            
+            $ac_opt->{ auto_build } = \&{ "${pkg}::build_$attr" };
+        }
         
         $e .=
         qq/    if( !\@vals && ! exists( \$self->{ $attr } ) ){\n/ .
-        qq/        \$self->build_$attr;\n/ .
+        qq/        \$ac_opt->{ auto_build }->( \$self );/ .
         qq/    }\n/ .
         qq/    \n/;
     }
@@ -607,7 +611,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1104
+Version 0.1105
 
 =cut
 
