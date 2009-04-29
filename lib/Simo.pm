@@ -11,7 +11,7 @@ use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
                    filter_values set_values_from_objective_hash
                    set_values_from_xml );
 
-our $VERSION = '0.1107';
+our $VERSION = '0.1108';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -239,7 +239,9 @@ sub _SIMO_process{
         $ac_opt->{ $key } = $val;
     }
     
-
+    # regist ATTRS
+    Simo->REGIST_ATTRS() if @Simo::ATTRIBUTES_CASHE;
+    
     # create accessor
     {
         my $code = _SIMO_create_accessor( $pkg, $attr, $ac_opt );
@@ -483,11 +485,14 @@ sub _SIMO_get_ac_info {
 # resist attribute specified by Attr
 sub REGIST_ATTRS{
     my $self = shift;
+    my @attributes_cashe = @Simo::ATTRIBUTES_CASHE;
+    
+    @Simo::ATTRIBUTES_CASHE = ();
     
     my %code_cache;
     my %pkg_registed;
     
-    foreach ( @Simo::ATTRIBUTES_CASHE ) {
+    foreach ( @attributes_cashe ) {
         my ($pkg, $ref ) = @$_;
         unless ($code_cache{$pkg}) {
 
@@ -509,9 +514,6 @@ sub REGIST_ATTRS{
         my $accessor = $code_cache{ $pkg }->{ $ref };
         push @{ $Simo::ATTRS{ $pkg } }, $accessor;
         $pkg_registed{ $pkg }++;
-        
-        no strict 'refs';
-        $pkg->$accessor;
     }
     
     my $e = '';
@@ -530,9 +532,7 @@ sub REGIST_ATTRS{
     }
     eval $e;
     if( $@ ){ die "Cannot execute\n$@\n$e" }; # never occured.        
-    
-    @Simo::ATTRIBUTES_CASHE = ();
-    
+
     return %pkg_registed;
 }
 
@@ -616,7 +616,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1107
+Version 0.1108
 
 =cut
 

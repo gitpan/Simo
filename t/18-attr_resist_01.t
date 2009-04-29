@@ -5,7 +5,7 @@ use Test::More 'no_plan';
 
 
 {
-    my $book = Data::Book->new;
+    my $book = Data::Book->new( title => 1, author => 2 );
     
     is_deeply( [ sort $book->ATTRS ], [ sort ( 'title', 'author' ) ], 'attr list' );
     is_deeply( [ sort Data::Book->ATTRS ], [ sort ( 'title', 'author' ) ], 'attr list pacakge' );
