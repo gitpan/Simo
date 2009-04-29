@@ -11,7 +11,7 @@ use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
                    filter_values set_values_from_objective_hash
                    set_values_from_xml );
 
-our $VERSION = '0.1106';
+our $VERSION = '0.1107';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -301,15 +301,20 @@ sub _SIMO_create_accessor{
     if( my $auto_build = $ac_opt->{ auto_build } ){
         unless( ref $auto_build eq 'CODE' ){
             # automatically call build method
-            Carp::croak( "'build_$attr' must exist in '$pkg' or parent when 'auto_build' option is set." )
-                unless $pkg->can( "build_$attr" );
+            my $build_method = $attr;
+            if( $attr =~ s/^(_*)// ){
+                $build_method = $1 . "build_$attr";
+            }
             
-            $ac_opt->{ auto_build } = \&{ "${pkg}::build_$attr" };
+            Carp::croak( "'$build_method' must exist in '$pkg' when 'auto_build' option is set." )
+                unless $pkg->can( $build_method );
+            
+            $ac_opt->{ auto_build } = \&{ "${pkg}::${build_method}" };
         }
         
         $e .=
         qq/    if( !\@vals && ! exists( \$self->{ $attr } ) ){\n/ .
-        qq/        \$ac_opt->{ auto_build }->( \$self );/ .
+        qq/        \$ac_opt->{ auto_build }->( \$self );\n/ .
         qq/    }\n/ .
         qq/    \n/;
     }
@@ -611,7 +616,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1106
+Version 0.1107
 
 =cut
 
@@ -802,10 +807,10 @@ is attribute list. If you specify attribute 'Attr', This is automatically set.
     package Book;
     use Simo;
     
-    sub title : attr { ac }
-    sub author : attr { ac }
+    sub title : Attr { ac }
+    sub author : Attr { ac }
 
-ATTRS is ( 'Title', 'Author' )
+$self->ATTRS return ( 'title', 'author' )
 
 =cut
 

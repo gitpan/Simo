@@ -427,15 +427,31 @@ sub build_a2{
 
 sub a3{ ac auto_build => 1 }
 
+sub _a4{ ac auto_build => 1 }
+sub _build_a4{
+    my $self = shift;
+    $self->_a4( 4 );
+}
+
+sub __a5{ ac auto_build => 1 }
+sub __build_a5{
+    my $self = shift;
+    $self->__a5( 5 );
+}
+
+
+
 package main;
 
 {
     my $o = T4->new;
     is( $o->a1, 1, 'auto_build' );
     is( $o->a2, 1, 'auto_build direct access' );
+    is( $o->_a4, 4, 'auto_build start under bar' );
+    is( $o->__a5, 5, 'auto_build start double under bar' );
     
     eval{ $o->a3 };
-    like( $@, qr/'build_a3' must exist in 'T4' or parent when 'auto_build' option is set/, 'no build method' );
+    like( $@, qr/'build_a3' must exist in 'T4' when 'auto_build' option is set/, 'no build method' );
 }
 
 package T5;
