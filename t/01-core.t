@@ -111,11 +111,11 @@ package main;
 # setter return value
 {
     my $book = Book->new;
-    my $old_default = $book->author( 'b' );
-    is( $old_default, 'a', 'return old value( default ) in case setter is called' );
+    my $current_default = $book->author( 'b' );
+    is( $current_default, 'b', 'return old value( default ) in case setter is called' );
     
-    my $old = $book->author( 'c' );
-    is( $old, 'b', 'return old value in case setter is called' );
+    my $current = $book->author( 'c' );
+    is( $current, 'c', 'return old value in case setter is called' );
 }
 
 # accessor option
@@ -156,7 +156,7 @@ package main;
         $book->raiting;
     };
     like( $@,
-        qr/noexist of Book::raiting is invalid accessor option/,
+        qr/Book::raiting 'noexist' is invalid accessor option/,
         'no exist accessor option',
     );
 }
@@ -503,6 +503,59 @@ package main;
     is( $o->a1, 1, 'auto_build pass method ref' );
     is( $o->a2, 2, 'auto_build pass anonimous sub' );
 }
+
+package T8;
+use Simo;
+
+sub a1{ ac default => 1, setter_return_value => 'before' }
+sub a2{ ac default => 1, setter_return_value => 'current' }
+sub a3{ ac default => 1, setter_return_value => 'self' }
+sub a4{ ac default => 1, setter_return_value => 'no_exist' }
+sub a5{ ac default => 1 }
+
+package main;
+{
+    my $t = T8->new;
+    
+    my $ret1 = $t->a1( 2 );
+    is( $ret1, 1, 'setter return value before' );
+    
+    my $ret2 = $t->a2( 3 );
+    is( $ret2, 3, 'setter return value current' );
+    
+    my $ret3 = $t->a3( 4 );
+    isa_ok( $ret3, 'T8', 'setter return value self' );
+    
+    my $ret4 = $t->a5( 5 );
+    is( $ret4, 5, 'setter return value default' );
+    
+    eval{ $t->a4 };
+    like( $@, qr/T8::a4 'setter_return_value' option must be 'before', 'current', or 'self'\./, 'setter return value no_exist option' );
+    
+}
+
+__END__
+package T9;
+use Simo;
+
+sub a1{ ac default => [ 1, 2, 3], weak => 1 }
+sub a2{ weak => 1 }
+
+package main;
+{
+    require Scalar::Util;
+    my $t = T9->new;
+    
+    # I cannot know default weaken ref test
+    $t->a1;
+    ok( Scalar::Util::isweak( $t->{ a1 } ), 'weak default' );
+    is_deeply( $t->{ a1 }, [1, 2, 3] );
+    
+    my $ret2 = $t->a2( $t );
+    ok( Scalar::Util::isweak( $t->{ a2 } ), 'weak set' );
+}
+
+
 
 
 

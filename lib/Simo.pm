@@ -11,7 +11,7 @@ use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
                    filter_values set_values_from_objective_hash
                    set_values_from_xml );
 
-our $VERSION = '0.1108';
+our $VERSION = '0.1109';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -214,7 +214,11 @@ sub ac(@){
 }
 
 # accessor option
-my %VALID_AC_OPT = map{ $_ => 1 } qw( default constrain filter trigger set_hook get_hook hash_force read_only auto_build );
+my %VALID_AC_OPT = map{ $_ => 1 } qw(
+                                      default constrain filter trigger
+                                      hash_force read_only auto_build setter_return_value
+                                      set_hook get_hook
+                                     );
 
 # Simo process. register accessor option and create accessor.
 sub _SIMO_process{
@@ -230,7 +234,7 @@ sub _SIMO_process{
     my $hook_options_exist = {};
     
     while( my( $key, $val ) = splice( @_, 0, 2 ) ){
-        croak "$key of ${pkg}::$attr is invalid accessor option" 
+        croak "${pkg}::$attr '$key' is invalid accessor option" 
             unless $VALID_AC_OPT{ $key };
         
         carp "${pkg}::$attr : $@" 
@@ -271,6 +275,8 @@ sub _SIMO_check_hook_options_order{
     return 1;
 }
 
+my %VALID_SETTER_RETURN_VALUE = map { $_ => 1 } qw( before current self );
+
 # create accessor.
 sub _SIMO_create_accessor{
     my ( $pkg, $attr, $ac_opt ) = @_;
@@ -278,7 +284,7 @@ sub _SIMO_create_accessor{
     my $e =
         qq/{\n/ .
         # arg recieve
-        qq/    my ( \$self, \@vals ) = \@_;\n\n/;
+        qq/    my \$self = shift;\n\n/;
 
     if( defined $ac_opt->{ default } ){
         # default value
@@ -289,6 +295,7 @@ sub _SIMO_create_accessor{
         $e .=
         qq/        require Storable;\n/ .
         qq/        \$self->{ $attr } = Storable::dclone( \$ac_opt->{ default } );\n/;
+        
         }
         else{
         $e .=
@@ -315,19 +322,16 @@ sub _SIMO_create_accessor{
         }
         
         $e .=
-        qq/    if( !\@vals && ! exists( \$self->{ $attr } ) ){\n/ .
+        qq/    if( !\@_ && ! exists( \$self->{ $attr } ) ){\n/ .
         qq/        \$ac_opt->{ auto_build }->( \$self );\n/ .
         qq/    }\n/ .
         qq/    \n/;
     }
     
-    # get value
-    $e .=
-        qq/    my \$ret = \$self->{ $attr };\n\n/;
 
     if ( $ac_opt->{ read_only } ){
         $e .=
-        qq/    if( \@vals ){\n/ .
+        qq/    if( \@_ ){\n/ .
         qq/        Simo::Error->throw(\n/ .
         qq/            type => 'read_only',\n/ .
         qq/            msg => "${pkg}::$attr is read only",\n/ .
@@ -340,13 +344,13 @@ sub _SIMO_create_accessor{
     }
         
     $e .=
-        qq/    if( \@vals ){\n/ .
+        qq/    if( \@_ ){\n/ .
     
     # rearrange value
-        qq/        my \$val = \@vals == 1 ? \$vals[0] :\n/;
+        qq/        my \$val = \@_ == 1 ? \$_[0] :\n/;
     $e .= $ac_opt->{ hash_force } ?
-        qq/                  \@vals >= 2 ? { \@vals } :\n/ :
-        qq/                  \@vals >= 2 ? [ \@vals ] :\n/;
+        qq/                  \@_ >= 2 ? { \@_ } :\n/ :
+        qq/                  \@_ >= 2 ? [ \@_ ] :\n/;
     $e .=
         qq/                  undef;\n\n/;
     
@@ -403,6 +407,17 @@ sub _SIMO_create_accessor{
         qq/            \$val = \$filter->( \$val );\n/ .
         qq/        }\n\n/;
     }
+
+    # setter return value;
+    my $setter_return_value = $ac_opt->{ setter_return_value };
+    $setter_return_value  ||= 'current';
+    Carp::croak( "${pkg}::$attr 'setter_return_value' option must be 'before', 'current', or 'self'." )
+        unless $VALID_SETTER_RETURN_VALUE{ $setter_return_value };
+    
+    if( $setter_return_value eq 'before' ){
+    $e .=
+        qq/        my \$before = \$self->{ $attr };\n\n/;
+    }
     
     # set value
     $e .=
@@ -422,7 +437,23 @@ sub _SIMO_create_accessor{
         qq/        foreach my \$trigger ( \@{ \$ac_opt->{ trigger } } ){\n/ .
         qq/            local \$_ = \$self;\n/ .
         qq/            \$trigger->( \$self );\n/ .
-        qq/        }\n/;
+        qq/        }\n\n/;
+    }
+    
+    
+    #return
+    if( $setter_return_value eq 'before' ){
+        $e .= 
+        qq/        return \$before\n/;
+    }
+    elsif( $setter_return_value eq 'current' ){
+        $e .= 
+        qq/        return \$self->{ \$attr }\n/;
+    }
+    else{
+        # self
+        $e .=
+        qq/        return \$self\n/;
     }
     
     $e .=
@@ -434,15 +465,20 @@ sub _SIMO_create_accessor{
         # get_hook option
         # ( get_hook option is is now not recommended. this option will be deleted in future 2019/01/01 )
         $e .=
-        qq/    eval{ \$ret = \$ac_opt->{ get_hook }->( \$self, \$ret ) };\n/ .
+        qq/    my \$ret;\n/ .
+        qq/    eval{ \$ret = \$ac_opt->{ get_hook }->( \$self, \$self->{ $attr } ) };\n/ .
         qq/    Carp::confess( \$@ ) if \$@;\n/;
-    }
-    
-    #return
-    $e .=
+        
+        $e .=
         qq/    return \$ret;\n/ .
         qq/}\n/;
-    
+    }
+    else{
+        #return
+        $e .=
+        qq/    return \$self->{ $attr };\n/ .
+        qq/}\n/;
+    }
     return $e;
 }
 
@@ -616,7 +652,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1108
+Version 0.1109
 
 =cut
 

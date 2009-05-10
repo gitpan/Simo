@@ -1,3 +1,7 @@
+0.1109
+    modify error message
+    add 'setter_return_value' option
+    return value defaut is curretn value
 0.1108
     bag fix : Attr attribute is not registerd when accessor method is called at frist.
 0.1107
