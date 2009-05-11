@@ -112,10 +112,10 @@ package main;
 {
     my $book = Book->new;
     my $current_default = $book->author( 'b' );
-    is( $current_default, 'b', 'return old value( default ) in case setter is called' );
+    ok( !$current_default, 'return old value( default ) in case setter is called' );
     
     my $current = $book->author( 'c' );
-    is( $current, 'c', 'return old value in case setter is called' );
+    ok( !$current, 'return old value in case setter is called' );
 }
 
 # accessor option
@@ -507,18 +507,19 @@ package main;
 package T8;
 use Simo;
 
-sub a1{ ac default => 1, setter_return_value => 'before' }
-sub a2{ ac default => 1, setter_return_value => 'current' }
-sub a3{ ac default => 1, setter_return_value => 'self' }
-sub a4{ ac default => 1, setter_return_value => 'no_exist' }
+sub a1{ ac default => 1, retval => 'old' }
+sub a2{ ac default => 1, retval => 'current' }
+sub a3{ ac default => 1, retval => 'self' }
+sub a4{ ac default => 1, retval => 'no_exist' }
 sub a5{ ac default => 1 }
+sub a6{ ac default => 1, retval => 'undef' } 
 
 package main;
 {
     my $t = T8->new;
     
     my $ret1 = $t->a1( 2 );
-    is( $ret1, 1, 'setter return value before' );
+    is( $ret1, 1, 'setter return value old' );
     
     my $ret2 = $t->a2( 3 );
     is( $ret2, 3, 'setter return value current' );
@@ -526,37 +527,16 @@ package main;
     my $ret3 = $t->a3( 4 );
     isa_ok( $ret3, 'T8', 'setter return value self' );
     
-    my $ret4 = $t->a5( 5 );
-    is( $ret4, 5, 'setter return value default' );
+    my $ret5 = $t->a5( 5 );
+    ok( !$ret5, 'setter return value default' );
+
+    my $ret6 = $t->a6( 5 );
+    ok( !$ret6, 'setter return value default' );
     
     eval{ $t->a4 };
-    like( $@, qr/T8::a4 'setter_return_value' option must be 'before', 'current', or 'self'\./, 'setter return value no_exist option' );
+    like( $@, qr/T8::a4 'retval' option must be 'undef', 'old', 'current', or 'self'\./, 'setter return value no_exist option' );
     
 }
-
-__END__
-package T9;
-use Simo;
-
-sub a1{ ac default => [ 1, 2, 3], weak => 1 }
-sub a2{ weak => 1 }
-
-package main;
-{
-    require Scalar::Util;
-    my $t = T9->new;
-    
-    # I cannot know default weaken ref test
-    $t->a1;
-    ok( Scalar::Util::isweak( $t->{ a1 } ), 'weak default' );
-    is_deeply( $t->{ a1 }, [1, 2, 3] );
-    
-    my $ret2 = $t->a2( $t );
-    ok( Scalar::Util::isweak( $t->{ a2 } ), 'weak set' );
-}
-
-
-
 
 
 

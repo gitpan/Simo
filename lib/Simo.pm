@@ -11,7 +11,7 @@ use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
                    filter_values set_values_from_objective_hash
                    set_values_from_xml );
 
-our $VERSION = '0.1109';
+our $VERSION = '0.1110';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -216,7 +216,7 @@ sub ac(@){
 # accessor option
 my %VALID_AC_OPT = map{ $_ => 1 } qw(
                                       default constrain filter trigger
-                                      hash_force read_only auto_build setter_return_value
+                                      hash_force read_only auto_build retval
                                       set_hook get_hook
                                      );
 
@@ -275,7 +275,7 @@ sub _SIMO_check_hook_options_order{
     return 1;
 }
 
-my %VALID_SETTER_RETURN_VALUE = map { $_ => 1 } qw( before current self );
+my %VALID_SETTER_RETURN_VALUE = map { $_ => 1 } qw( undef old current self );
 
 # create accessor.
 sub _SIMO_create_accessor{
@@ -409,14 +409,14 @@ sub _SIMO_create_accessor{
     }
 
     # setter return value;
-    my $setter_return_value = $ac_opt->{ setter_return_value };
-    $setter_return_value  ||= 'current';
-    Carp::croak( "${pkg}::$attr 'setter_return_value' option must be 'before', 'current', or 'self'." )
-        unless $VALID_SETTER_RETURN_VALUE{ $setter_return_value };
+    my $retval = $ac_opt->{ retval };
+    $retval  ||= 'undef';
+    Carp::croak( "${pkg}::$attr 'retval' option must be 'undef', 'old', 'current', or 'self'." )
+        unless $VALID_SETTER_RETURN_VALUE{ $retval };
     
-    if( $setter_return_value eq 'before' ){
+    if( $retval eq 'old' ){
     $e .=
-        qq/        my \$before = \$self->{ $attr };\n\n/;
+        qq/        my \$old = \$self->{ $attr };\n\n/;
     }
     
     # set value
@@ -442,18 +442,22 @@ sub _SIMO_create_accessor{
     
     
     #return
-    if( $setter_return_value eq 'before' ){
+    if( $retval eq 'old' ){
         $e .= 
-        qq/        return \$before\n/;
+        qq/        return \$old;\n/;
     }
-    elsif( $setter_return_value eq 'current' ){
+    elsif( $retval eq 'current' ){
         $e .= 
-        qq/        return \$self->{ \$attr }\n/;
+        qq/        return \$self->{ \$attr };\n/;
     }
-    else{
+    elsif( $retval eq 'self' ){
         # self
         $e .=
-        qq/        return \$self\n/;
+        qq/        return \$self;\n/;
+    }
+    else{
+        $e .=
+        qq/        return;\n/
     }
     
     $e .=
@@ -652,7 +656,7 @@ Simo - Very simple framework for Object Oriented Perl.
 
 =head1 VERSION
 
-Version 0.1109
+Version 0.1110
 
 =cut
 
