@@ -11,7 +11,7 @@ use Simo::Util qw( run_methods encode_attrs clone freeze thaw validate
                    filter_values set_values_from_objective_hash
                    set_values_from_xml );
 
-our $VERSION = '0.1110';
+our $VERSION = '0.1201';
 
 my %VALID_IMPORT_OPT = map{ $_ => 1 } qw( base new mixin );
 sub import{
@@ -652,19 +652,19 @@ sub set_attrs{
 
 =head1 NAME
 
-Simo - Very simple framework for Object Oriented Perl.
+Simo - Simple class builder [DISCOURAGED]
 
 =head1 VERSION
 
-Version 0.1110
+Version 0.1201
 
 =cut
 
 =head1 CAUTION
 
-Simo is yet experimenta stage.
+This module is discouraged now, because I develope new module L<Object::Simple> now.
 
-Please wait until Simo will be stable.
+L<Object::Simple> is very simple class builder. It is clean, compact, and fast.
 
 =cut
 
@@ -886,42 +886,9 @@ B<get_attrs>,B<get_attrs_as_hash>,B<set_attrs>,B<run_methods> is now not recomme
 
 Yuki Kimoto, C<< <kimoto.yuki at gmail.com> >>
 
-=head1 BUGS
+=head1 SEE ALSO
 
-Please report any bugs or feature requests to C<bug-simo at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Simo>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Simo
-
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Simo>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Simo>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Simo>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Simo/>
-
-=back
-
-=head1 SIMILAR MODULES
+L<Object::Simple>
 
 L<Class::Accessor>,L<Class::Accessor::Fast>, L<Moose>, L<Mouse>.
 
